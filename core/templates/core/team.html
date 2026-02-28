@@ -1,0 +1,469 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Our Team — Panjabi in Bengaluru{% endblock %}
+{% block meta_description %}Meet the founders of Panjabi in Bengaluru — Mehakdeep Singh, Karun Pabbi, and Karanbir Singh.{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========================
+       PAGE HERO
+    ======================== */
+    .page-hero {
+        padding: 140px 2rem 100px;
+        background: #050810;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+    }
+
+    .page-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(200,168,75,0.12) 0%, transparent 70%);
+    }
+
+    .page-hero-grid {
+        position: absolute;
+        inset: 0;
+        background-image: 
+            linear-gradient(rgba(200,168,75,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(200,168,75,0.04) 1px, transparent 1px);
+        background-size: 60px 60px;
+        mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 0%, transparent 80%);
+    }
+
+    .page-hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .page-hero h1 {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(3rem, 7vw, 5.5rem);
+        font-weight: 600;
+        line-height: 1.05;
+        color: var(--white);
+        margin-bottom: 1.5rem;
+    }
+
+    .page-hero h1 span {
+        color: var(--gold);
+        font-style: italic;
+    }
+
+    .page-hero p {
+        font-size: 1.1rem;
+        color: var(--text-body);
+        line-height: 1.8;
+    }
+
+    /* ========================
+       TEAM SECTION
+    ======================== */
+    .team-section {
+        padding: 120px 2rem;
+        background: var(--navy);
+    }
+
+    .team-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 40px;
+        margin-top: 80px;
+    }
+
+    .team-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        overflow: hidden;
+        transition: all 0.5s ease;
+        position: relative;
+    }
+
+    .team-card:hover {
+        transform: translateY(-12px);
+        border-color: rgba(200,168,75,0.5);
+        box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+    }
+
+    .team-card-top {
+        position: relative;
+        padding: 50px 40px 40px;
+        background: rgba(200,168,75,0.03);
+        border-bottom: 1px solid var(--border);
+        text-align: center;
+        overflow: hidden;
+    }
+
+    .team-card-top::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-gold);
+    }
+
+    .team-bg-initial {
+        position: absolute;
+        top: -20px;
+        right: -10px;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 7rem;
+        font-weight: 700;
+        color: rgba(200,168,75,0.06);
+        line-height: 1;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .team-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--navy);
+        margin: 0 auto 1.5rem;
+        position: relative;
+        z-index: 1;
+        background: var(--gradient-gold);
+        border: 4px solid rgba(200,168,75,0.3);
+        box-shadow: 0 10px 40px rgba(200,168,75,0.3);
+        transition: all 0.4s ease;
+    }
+
+    .team-card:hover .team-avatar {
+        box-shadow: 0 15px 60px rgba(200,168,75,0.5);
+        transform: scale(1.05);
+    }
+
+    .team-name {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--white);
+        margin-bottom: 6px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .team-role {
+        display: inline-block;
+        background: rgba(200,168,75,0.1);
+        border: 1px solid rgba(200,168,75,0.3);
+        color: var(--gold);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        border-radius: 50px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .team-card-body {
+        padding: 36px 36px 32px;
+    }
+
+    .team-bio {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        line-height: 1.8;
+        margin-bottom: 2rem;
+    }
+
+    .team-divider {
+        height: 1px;
+        background: var(--border);
+        margin-bottom: 1.5rem;
+    }
+
+    .team-instagram {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        padding: 12px 16px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .team-instagram:hover {
+        background: rgba(200,168,75,0.08);
+        border-color: rgba(200,168,75,0.4);
+        transform: translateY(-2px);
+    }
+
+    .team-instagram .ig-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .team-instagram .ig-text {
+        flex: 1;
+    }
+
+    .team-instagram .ig-label {
+        display: block;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 2px;
+    }
+
+    .team-instagram .ig-handle {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--white);
+    }
+
+    .team-instagram i.fa-arrow-right {
+        color: var(--gold);
+        font-size: 0.8rem;
+        transition: transform 0.3s ease;
+    }
+
+    .team-instagram:hover i.fa-arrow-right {
+        transform: translateX(4px);
+    }
+
+    /* ========================
+       VALUES SECTION
+    ======================== */
+    .values-section {
+        padding: 120px 2rem;
+        background: #060B18;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .values-section::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 50% at 50% 50%, rgba(200,168,75,0.05) 0%, transparent 70%);
+    }
+
+    .values-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+        text-align: center;
+    }
+
+    .join-team-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 80px 60px;
+        margin-top: 80px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .join-team-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--gradient-gold);
+    }
+
+    .join-team-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(200,168,75,0.04) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .join-team-card .section-title {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        position: relative;
+        z-index: 1;
+    }
+
+    .join-team-card p {
+        color: var(--text-body);
+        font-size: 1rem;
+        line-height: 1.8;
+        max-width: 500px;
+        margin: 0 auto 2.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .join-team-card .cta-btns {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ========================
+       RESPONSIVE
+    ======================== */
+    @media (max-width: 1024px) {
+        .team-grid {
+            grid-template-columns: 1fr;
+            max-width: 480px;
+            margin: 80px auto 0;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .join-team-card {
+            padding: 50px 30px;
+        }
+    }
+
+    .fade-up {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .fade-up.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HERO -->
+<section class="page-hero">
+    <div class="page-hero-grid"></div>
+    <div class="page-hero-content">
+        <div class="section-badge" style="display: inline-flex; margin-bottom: 1.5rem;">
+            <i class="fas fa-users"></i>
+            The Founders
+        </div>
+        <h1>Meet the <span>Team</span><br>Behind PIB</h1>
+        <div class="gold-divider center"></div>
+        <p>Three visionaries. One mission. Building Bangalore's most exclusive Punjabi community from the ground up.</p>
+    </div>
+</section>
+
+<!-- TEAM SECTION -->
+<section class="team-section">
+    <div class="team-container">
+        <div style="text-align: center;" class="fade-up">
+            <div class="section-badge" style="display: inline-flex;">
+                <i class="fas fa-crown"></i>
+                Our Founders
+            </div>
+            <h2 class="section-title">The Visionaries<br>Who <span>Started It All</span></h2>
+            <div class="gold-divider center"></div>
+            <p class="section-subtitle" style="margin: 0 auto; max-width: 600px;">
+                United by their Punjabi roots and a shared love for Bangalore, these three built something extraordinary.
+            </p>
+        </div>
+
+        <div class="team-grid">
+            {% for member in team_members %}
+            <div class="team-card fade-up">
+                <div class="team-card-top">
+                    <div class="team-bg-initial">{{ member.initials }}</div>
+                    <div class="team-avatar">{{ member.initials }}</div>
+                    <h2 class="team-name">{{ member.name }}</h2>
+                    <span class="team-role">{{ member.role }}</span>
+                </div>
+                <div class="team-card-body">
+                    <p class="team-bio">{{ member.bio }}</p>
+                    <div class="team-divider"></div>
+                    <a href="{{ member.instagram }}" target="_blank" class="team-instagram">
+                        <div class="ig-icon">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                        <div class="ig-text">
+                            <span class="ig-label">Instagram</span>
+                            <span class="ig-handle">{{ member.instagram_handle }}</span>
+                        </div>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- JOIN COMMUNITY CTA -->
+<section class="values-section">
+    <div class="values-container">
+        <div class="fade-up">
+            <div class="section-badge" style="display: inline-flex;">
+                <i class="fas fa-handshake"></i>
+                Be Part of It
+            </div>
+            <h2 class="section-title">The Team is <span>Growing</span></h2>
+            <div class="gold-divider center"></div>
+        </div>
+
+        <div class="join-team-card fade-up">
+            <h2 class="section-title">Want to Be Part of<br><span>Our Community?</span></h2>
+            <p>The founders built this for you. Join the hundreds of Punjabis who've found their tribe in Bangalore through Panjabi in Bengaluru.</p>
+            <div class="cta-btns">
+                <a href="{% url 'join' %}" class="btn-primary">
+                    <i class="fas fa-crown"></i>
+                    Join the Club
+                </a>
+                <a href="{% url 'contact' %}" class="btn-secondary">
+                    Connect With Us <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+{% endblock %}
