@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}About Us — Panjabi in Bengaluru{% endblock %}
+{% block extra_css %}
+<style>
+    .page-hero { padding:140px 2rem 100px; background:#050810; position:relative; overflow:hidden; text-align:center; }
+    .page-hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(200,168,75,0.12) 0%,transparent 70%); }
+    .page-hero-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(200,168,75,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(200,168,75,0.04) 1px,transparent 1px); background-size:60px 60px; mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black 0%,transparent 80%); }
+    .page-hero-content { position:relative; z-index:2; max-width:800px; margin:0 auto; }
+    .page-hero h1 { font-family:'Cormorant Garamond',serif; font-size:clamp(3rem,7vw,5.5rem); font-weight:600; line-height:1.05; color:var(--white); margin-bottom:1.5rem; }
+    .page-hero h1 span { color:var(--gold); font-style:italic; }
+    .page-hero p { font-size:1.15rem; color:var(--text-body); line-height:1.8; }
+
+    .story-section { padding:120px 2rem; background:var(--navy); }
+    .story-container { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:100px; align-items:center; }
+    .story-text .section-subtitle { font-size:1rem; color:var(--text-body); line-height:1.9; margin-bottom:1.5rem; max-width:100%; }
+    .story-quote { border-left:3px solid var(--gold); padding:20px 28px; margin:2rem 0; background:rgba(200,168,75,0.05); border-radius:0 10px 10px 0; }
+    .story-quote p { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-style:italic; color:var(--off-white); line-height:1.5; }
+    .story-quote cite { display:block; margin-top:10px; font-size:0.8rem; color:var(--gold); font-style:normal; letter-spacing:1px; text-transform:uppercase; }
+    .story-visual { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .story-stat-card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:16px; padding:32px 24px; text-align:center; transition:all 0.4s ease; }
+    .story-stat-card:hover { background:rgba(200,168,75,0.06); border-color:rgba(200,168,75,0.4); transform:translateY(-5px); }
+    .story-stat-card.span-2 { grid-column:span 2; background:linear-gradient(135deg,rgba(200,168,75,0.08) 0%,rgba(200,168,75,0.03) 100%); border-color:rgba(200,168,75,0.3); }
+    .story-stat-card h3 { font-family:'Cormorant Garamond',serif; font-size:3.5rem; font-weight:700; color:var(--gold); line-height:1; margin-bottom:8px; }
+    .story-stat-card p { color:var(--text-muted); font-size:0.8rem; letter-spacing:1px; text-transform:uppercase; }
+    .story-stat-card .emoji { font-size:2.5rem; margin-bottom:12px; display:block; }
+
+    .mission-section { padding:120px 2rem; background:#060B18; position:relative; }
+    .mission-section::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(200,168,75,0.05) 0%,transparent 70%); }
+    .mission-container { max-width:1200px; margin:0 auto; position:relative; z-index:1; }
+    .pillars-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; }
+    .pillar-card { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:20px; padding:48px 36px; text-align:center; transition:all 0.4s ease; }
+    .pillar-card:hover { background:rgba(200,168,75,0.05); border-color:rgba(200,168,75,0.5); transform:translateY(-8px); box-shadow:0 30px 80px rgba(0,0,0,0.3); }
+    .pillar-icon { width:80px; height:80px; background:rgba(200,168,75,0.1); border:1px solid rgba(200,168,75,0.3); border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto 2rem; font-size:1.8rem; color:var(--gold); transition:all 0.4s ease; }
+    .pillar-card:hover .pillar-icon { background:var(--gradient-gold); color:var(--navy); border-color:var(--gold); }
+    .pillar-card h3 { font-family:'Cormorant Garamond',serif; font-size:1.7rem; font-weight:600; color:var(--white); margin-bottom:1rem; }
+    .pillar-card p { color:var(--text-muted); font-size:0.9rem; line-height:1.8; }
+
+    .timeline-section { padding:120px 2rem; background:var(--navy); }
+    .timeline-container { max-width:800px; margin:0 auto; }
+    .timeline { position:relative; margin-top:60px; }
+    .timeline::before { content:''; position:absolute; left:30px; top:0; bottom:0; width:1px; background:linear-gradient(to bottom,var(--gold),transparent); }
+    .timeline-item { display:flex; gap:32px; margin-bottom:50px; }
+    .timeline-dot { width:60px; height:60px; background:rgba(200,168,75,0.1); border:2px solid var(--gold); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--gold); font-weight:700; font-family:'Space Grotesk',sans-serif; font-size:0.85rem; position:relative; z-index:1; }
+    .timeline-content { flex:1; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:14px; padding:28px 32px; transition:all 0.3s ease; }
+    .timeline-content:hover { border-color:rgba(200,168,75,0.3); background:rgba(200,168,75,0.03); }
+    .timeline-content h4 { font-family:'Space Grotesk',sans-serif; font-size:1rem; font-weight:700; color:var(--gold); margin-bottom:8px; }
+    .timeline-content h3 { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:600; color:var(--white); margin-bottom:10px; }
+    .timeline-content p { color:var(--text-muted); font-size:0.875rem; line-height:1.7; }
+
+    .instagram-cta { padding:100px 2rem; background:#060B18; text-align:center; }
+    .instagram-card { max-width:600px; margin:0 auto; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:24px; padding:60px 40px; position:relative; overflow:hidden; }
+    .instagram-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,#833AB4,#FD1D1D,#FCB045); }
+    .instagram-icon { width:70px; height:70px; background:linear-gradient(135deg,#833AB4,#FD1D1D,#FCB045); border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:2rem; color:white; margin:0 auto 2rem; }
+    .instagram-card h3 { font-family:'Cormorant Garamond',serif; font-size:2.2rem; font-weight:600; color:var(--white); margin-bottom:1rem; }
+    .instagram-card p { color:var(--text-muted); font-size:0.95rem; line-height:1.7; margin-bottom:2rem; }
+    .instagram-btn { display:inline-flex; align-items:center; gap:10px; background:linear-gradient(135deg,#833AB4,#FD1D1D,#FCB045); color:white; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:700; font-size:0.9rem; transition:all 0.3s ease; }
+    .instagram-btn:hover { transform:translateY(-3px); box-shadow:0 8px 30px rgba(253,29,29,0.4); }
+
+    @media(max-width:768px){
+        .story-container{grid-template-columns:1fr;gap:60px;}
+        .pillars-grid{grid-template-columns:1fr;}
+        .timeline::before{left:22px;}
+        .timeline-dot{width:44px;height:44px;font-size:0.75rem;}
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="page-hero-grid"></div>
+    <div class="page-hero-content">
+        <div class="section-badge" style="display:inline-flex;margin-bottom:1.5rem;"><i class="fas fa-heart"></i> Our Story</div>
+        <h1>About <span>Panjabi in</span><br>Bengaluru</h1>
+        <div class="gold-divider center"></div>
+        <p>From four friends to a family of hundreds — here's the story of how we built Bangalore's most beloved Panjabi community.</p>
+    </div>
+</section>
+
+<section class="story-section">
+    <div class="story-container">
+        <div class="story-text fade-up">
+            <div class="section-badge"><i class="fas fa-book-open"></i> The Beginning</div>
+            <h2 class="section-title">A Story Born<br>from <span>Homesickness</span></h2>
+            <div class="gold-divider"></div>
+            <p class="section-subtitle">It started simply — four Panjabis in Bangalore, missing the warmth of back home. Missing the banter, the food, the festivals, and the sense of belonging that comes so naturally in Panjab.</p>
+            <p class="section-subtitle">Mehakdeep, Karun, and Karanbir had each carved their own paths in Bangalore's fast-paced world. But they kept coming back to the same question: where are our people?</p>
+            <div class="story-quote">
+                <p>"We didn't want a Facebook group. We wanted a real community — something exclusive, something meaningful, something that actually brought people together."</p>
+                <cite>— The Founding Team</cite>
+            </div>
+            <p class="section-subtitle">So they built it. What started as small weekend meetups grew into a movement. Today, Panjabi in Bengaluru is the heartbeat of hundreds of Panjabis who now have a second home in the Garden City.</p>
+        </div>
+        <div class="story-visual fade-up">
+            <div class="story-stat-card"><h3>900+</h3><p>Active Members</p></div>
+            <div class="story-stat-card"><h3>5+</h3><p>Events Hosted</p></div>
+            <div class="story-stat-card"><h3>4+</h3><p>Weeks Strong</p></div>
+            <div class="story-stat-card"><h3>∞</h3><p>Friendships Made</p></div>
+            <div class="story-stat-card span-2"><span class="emoji">🌟</span><h3 style="font-size:1.5rem;color:var(--white);">Bangalore's #1</h3><p>Exclusive Panjabi Community</p></div>
+        </div>
+    </div>
+</section>
+
+<section class="mission-section">
+    <div class="mission-container">
+        <div style="text-align:center;" class="fade-up">
+            <div class="section-badge" style="display:inline-flex;"><i class="fas fa-bullseye"></i> Our Mission</div>
+            <h2 class="section-title">What Drives <span>Everything</span><br>We Do</h2>
+            <div class="gold-divider center"></div>
+            <p class="section-subtitle" style="margin:0 auto;">Three pillars form the foundation of everything Panjabi in Bengaluru stands for.</p>
+        </div>
+        <div class="pillars-grid" style="margin-top:60px;">
+            <div class="pillar-card fade-up"><div class="pillar-icon"><i class="fas fa-home"></i></div><h3>Belonging</h3><p>Every Panjabi in Bangalore deserves a place that feels like home. We create that warmth — the laughter, the food, the familiarity that reminds you where you're from.</p></div>
+            <div class="pillar-card fade-up"><div class="pillar-icon"><i class="fas fa-rocket"></i></div><h3>Growth</h3><p>We believe in lifting each other up. Through career talks, business networking, and collaborative opportunities, we help every member reach their potential.</p></div>
+            <div class="pillar-card fade-up"><div class="pillar-icon"><i class="fas fa-star"></i></div><h3>Culture</h3><p>Keeping the spirit of Panjab alive — from Baisakhi celebrations to Diwali gatherings — we honour our roots while building our futures in Bengaluru.</p></div>
+        </div>
+    </div>
+</section>
+
+<section class="timeline-section">
+    <div class="timeline-container">
+        <div style="text-align:center;" class="fade-up">
+            <div class="section-badge" style="display:inline-flex;"><i class="fas fa-clock"></i> Our Journey</div>
+            <h2 class="section-title">How We've <span>Grown</span></h2>
+            <div class="gold-divider center"></div>
+        </div>
+        <div class="timeline fade-up">
+            <div class="timeline-item"><div class="timeline-dot">-</div><div class="timeline-content"><h4>The Founding Year</h4><h3>The First Meetup</h3><p>Three friends, one idea. Our first gathering brought together 20 Panjabis in Bangalore for a simple dinner that changed everything.</p></div></div>
+            <div class="timeline-item"><div class="timeline-dot">-</div><div class="timeline-content"><h4>Growth & Momentum</h4><h3>Community Takes Shape</h3><p>Membership crossed 100, our first career talk was a massive hit, and the community began organizing its first group trip.</p></div></div>
+            <div class="timeline-item"><div class="timeline-dot">-</div><div class="timeline-content"><h4>Going Exclusive</h4><h3>The Club is Born</h3><p>We launched as an exclusive membership club, curating quality experiences and creating a tighter, more meaningful community.</p></div></div>
+            <div class="timeline-item"><div class="timeline-dot">-</div><div class="timeline-content"><h4>Scaling New Heights</h4><h3>900+ Strong & Growing</h3><p>With 900+ active members, events every few weeks, and a thriving Instagram community, we're just getting started. The best is yet to come.</p></div></div>
+        </div>
+    </div>
+</section>
+
+<section class="instagram-cta fade-up">
+    <div class="instagram-card">
+        <div class="instagram-icon"><i class="fab fa-instagram"></i></div>
+        <h3>Follow Our Journey</h3>
+        <p>Stay updated with our latest events, meetups, and community moments on Instagram. Join the conversation and be part of something special.</p>
+        <a href="https://www.instagram.com/panjabi.in.bengaluru/" target="_blank" class="instagram-btn"><i class="fab fa-instagram"></i> @panjabi.in.bengaluru</a>
+    </div>
+</section>
+{% endblock %}

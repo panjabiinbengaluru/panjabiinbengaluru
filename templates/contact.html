@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% block title %}Contact Us — Panjabi in Bengaluru{% endblock %}
+{% block extra_css %}
+<style>
+    .page-hero { padding:140px 2rem 100px; background:#050810; position:relative; overflow:hidden; text-align:center; }
+    .page-hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(200,168,75,0.12) 0%,transparent 70%); }
+    .page-hero-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(200,168,75,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(200,168,75,0.04) 1px,transparent 1px); background-size:60px 60px; mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black 0%,transparent 80%); }
+    .page-hero-content { position:relative; z-index:2; max-width:700px; margin:0 auto; }
+    .page-hero h1 { font-family:'Cormorant Garamond',serif; font-size:clamp(3rem,7vw,5.5rem); font-weight:600; line-height:1.05; color:var(--white); margin-bottom:1.5rem; }
+    .page-hero h1 span { color:var(--gold); font-style:italic; }
+    .page-hero p { font-size:1.1rem; color:var(--text-body); line-height:1.8; }
+
+    .contact-section { padding:120px 2rem; background:var(--navy); }
+    .contact-container { max-width:1200px; margin:0 auto; }
+    .contact-grid { display:grid; grid-template-columns:420px 1fr; gap:60px; margin-top:80px; align-items:start; }
+    
+    /* --- Sidebar --- */
+    .contact-sidebar { display:flex; flex-direction:column; gap:28px; }
+    .contact-info-card { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:20px; padding:32px; }
+    .contact-info-card h3 { font-family:'Cormorant Garamond',serif; font-size:1.4rem; color:var(--white); margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+    .contact-info-card h3 i { color:var(--gold); font-size:1rem; }
+    .phone-item { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .phone-item:last-child { border-bottom:none; padding-bottom:0; }
+    .phone-icon { width:40px; height:40px; background:rgba(200,168,75,0.08); border:1px solid rgba(200,168,75,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:0.85rem; flex-shrink:0; }
+    .phone-item a { color:var(--white); text-decoration:none; font-size:0.95rem; font-weight:500; transition:color 0.3s; }
+    .phone-item a:hover { color:var(--gold); }
+    .email-card { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:20px; padding:26px; display:flex; align-items:flex-start; gap:16px; text-decoration:none; transition:all 0.3s ease; }
+    .email-card:hover { border-color:rgba(200,168,75,0.4); background:rgba(200,168,75,0.04); transform:translateX(4px); }
+    .email-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+    .email-icon.info { background:rgba(200,168,75,0.1); color:var(--gold); border:1px solid rgba(200,168,75,0.2); }
+    .email-icon.biz { background:rgba(100,160,220,0.1); color:#64A0DC; border:1px solid rgba(100,160,220,0.2); }
+    .email-icon.admin { background:rgba(160,100,220,0.1); color:#A064DC; border:1px solid rgba(160,100,220,0.2); }
+    .email-text { flex:1; }
+    .email-label { display:block; font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:4px; }
+    .email-addr { display:block; color:var(--white); font-size:0.85rem; font-weight:500; margin-bottom:4px; }
+    .email-desc { display:block; color:var(--text-muted); font-size:0.8rem; }
+    .location-card { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:20px; padding:26px; display:flex; align-items:flex-start; gap:16px; }
+    .location-icon { width:44px; height:44px; background:rgba(200,168,75,0.08); border:1px solid rgba(200,168,75,0.2); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:1rem; flex-shrink:0; }
+    .location-text h4 { color:var(--white); font-size:0.95rem; font-weight:600; margin-bottom:4px; }
+    .location-text p { color:var(--text-muted); font-size:0.85rem; line-height:1.6; }
+
+    /* --- Form --- */
+    .contact-form-wrap { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:24px; overflow:hidden; }
+    .contact-form-wrap::before { display:none; }
+    .form-header { padding:36px 40px; border-bottom:1px solid var(--border); background:rgba(200,168,75,0.03); position:relative; }
+    .form-header::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--gradient-gold); }
+    .form-header h2 { font-family:'Cormorant Garamond',serif; font-size:2rem; color:var(--white); margin-bottom:6px; }
+    .form-header p { color:var(--text-muted); font-size:0.9rem; }
+    .contact-form { padding:40px; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .form-group { margin-bottom:22px; }
+    .form-label { display:block; font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:8px; }
+    .form-input, .form-select, .form-textarea { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 18px; color:var(--white); font-size:0.9rem; font-family:'Inter',sans-serif; transition:all 0.3s ease; box-sizing:border-box; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline:none; border-color:var(--gold); background:rgba(200,168,75,0.04); box-shadow:0 0 0 3px rgba(200,168,75,0.08); }
+    .form-input::placeholder, .form-textarea::placeholder { color:rgba(255,255,255,0.25); }
+    .form-select { appearance:none; cursor:pointer; }
+    .form-select option { background:#0A0F1E; }
+    .form-textarea { resize:vertical; min-height:130px; }
+    .form-submit { margin-top:8px; }
+    .form-submit .btn-primary { width:100%; justify-content:center; font-size:0.95rem; padding:16px 24px; }
+
+    /* --- FAQ --- */
+    .faq-section { padding:100px 2rem; background:#060B18; }
+    .faq-container { max-width:900px; margin:0 auto; }
+    .faq-list { margin-top:60px; display:flex; flex-direction:column; gap:16px; }
+    .faq-item { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:16px; overflow:hidden; transition:border-color 0.3s ease; }
+    .faq-item.open { border-color:rgba(200,168,75,0.4); }
+    .faq-question { display:flex; align-items:center; justify-content:space-between; padding:22px 28px; cursor:pointer; gap:20px; }
+    .faq-question h3 { font-size:1rem; color:var(--white); font-weight:500; font-family:'Inter',sans-serif; }
+    .faq-icon { width:32px; height:32px; border-radius:8px; background:rgba(200,168,75,0.08); border:1px solid rgba(200,168,75,0.2); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:0.75rem; flex-shrink:0; transition:all 0.3s ease; }
+    .faq-item.open .faq-icon { background:rgba(200,168,75,0.15); transform:rotate(45deg); }
+    .faq-answer { max-height:0; overflow:hidden; transition:max-height 0.4s ease; }
+    .faq-answer-inner { padding:0 28px 24px; color:var(--text-muted); font-size:0.9rem; line-height:1.8; border-top:1px solid var(--border); padding-top:16px; }
+
+    @media(max-width:1024px){ .contact-grid{grid-template-columns:1fr;} }
+    @media(max-width:640px){ .form-row{grid-template-columns:1fr;} .contact-form{padding:24px;} .form-header{padding:24px;} }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="page-hero-grid"></div>
+    <div class="page-hero-content">
+        <div class="section-badge" style="display:inline-flex;margin-bottom:1.5rem;"><i class="fas fa-envelope"></i> Reach Out</div>
+        <h1>Get in <span>Touch</span><br>With Us</h1>
+        <div class="gold-divider center"></div>
+        <p>Have questions? Want to collaborate? We'd love to hear from you. Our team typically responds within 24 hours.</p>
+    </div>
+</section>
+
+<section class="contact-section">
+    <div class="contact-container">
+        <div style="text-align:center;" class="fade-up">
+            <div class="section-badge" style="display:inline-flex;"><i class="fas fa-comments"></i> Contact</div>
+            <h2 class="section-title">Let's <span>Connect</span></h2>
+            <div class="gold-divider center"></div>
+        </div>
+
+        <div class="contact-grid">
+            <!-- Sidebar -->
+            <div class="contact-sidebar fade-up">
+                <div class="contact-info-card">
+                    <h3><i class="fas fa-phone-alt"></i> Phone Numbers</h3>
+                    <div class="phone-item">
+                        <div class="phone-icon"><i class="fas fa-phone"></i></div>
+                        <a href="tel:+919991429600">+91 99914 29600</a>
+                    </div>
+                    <div class="phone-item">
+                        <div class="phone-icon"><i class="fas fa-phone"></i></div>
+                        <a href="tel:+917009368636">+91 70093 68636</a>
+                    </div>
+                    <div class="phone-item">
+                        <div class="phone-icon"><i class="fas fa-phone"></i></div>
+                        <a href="tel:+916283351303">+91 62833 51303</a>
+                    </div>
+                </div>
+
+                <a href="mailto:info@panjabiinbengaluru.com" class="email-card">
+                    <div class="email-icon info"><i class="fas fa-info-circle"></i></div>
+                    <div class="email-text">
+                        <span class="email-label">General Enquiries</span>
+                        <span class="email-addr">info@panjabiinbengaluru.com</span>
+                        <span class="email-desc">General Info &amp; Community Queries</span>
+                    </div>
+                </a>
+
+                <a href="mailto:business@panjabiinbengaluru.com" class="email-card">
+                    <div class="email-icon biz"><i class="fas fa-briefcase"></i></div>
+                    <div class="email-text">
+                        <span class="email-label">Business</span>
+                        <span class="email-addr">business@panjabiinbengaluru.com</span>
+                        <span class="email-desc">Business &amp; Brand Partnerships</span>
+                    </div>
+                </a>
+
+                <a href="mailto:admin@panjabiinbengaluru.com" class="email-card">
+                    <div class="email-icon admin"><i class="fas fa-star"></i></div>
+                    <div class="email-text">
+                        <span class="email-label">Founder Connect</span>
+                        <span class="email-addr">admin@panjabiinbengaluru.com</span>
+                        <span class="email-desc">Special Guest / Founder Access</span>
+                    </div>
+                </a>
+
+                <div class="location-card">
+                    <div class="location-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="location-text">
+                        <h4>Bengaluru, Karnataka</h4>
+                        <p>We host events across the city — from Koramangala to Whitefield and everywhere in between.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <div class="contact-form-wrap fade-up">
+                <div class="form-header">
+                    <h2>Send a Message</h2>
+                    <p>Fill in the form and a member of our team will get back to you shortly.</p>
+                </div>
+                <form class="contact-form" method="POST" action="{{ url_for('contact') }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Your Name *</label>
+                            <input type="text" name="name" class="form-input" placeholder="Gurpreet Singh" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email Address *</label>
+                            <input type="email" name="email" class="form-input" placeholder="gurpreet@email.com" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" name="phone" class="form-input" placeholder="+91 98765 43210">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Subject *</label>
+                            <select name="subject" class="form-select" required>
+                                <option value="" disabled selected>Select a subject</option>
+                                <option value="membership">Membership Enquiry</option>
+                                <option value="event">Event Information</option>
+                                <option value="partnership">Business Partnership</option>
+                                <option value="collaboration">Collaboration</option>
+                                <option value="media">Media / Press</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Message *</label>
+                        <textarea name="message" class="form-textarea" placeholder="Tell us how we can help you..." required></textarea>
+                    </div>
+                    <div class="form-submit">
+                        <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Send Message</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="faq-section">
+    <div class="faq-container">
+        <div style="text-align:center;" class="fade-up">
+            <div class="section-badge" style="display:inline-flex;"><i class="fas fa-question-circle"></i> FAQ</div>
+            <h2 class="section-title">Frequently Asked <span>Questions</span></h2>
+            <div class="gold-divider center"></div>
+            <p class="section-subtitle" style="margin:0 auto;">Everything you need to know about Panjabi in Bengaluru.</p>
+        </div>
+        <div class="faq-list fade-up">
+            <div class="faq-item">
+                <div class="faq-question" onclick="this.parentElement.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.parentElement.classList.contains('open')?(this.nextElementSibling.scrollHeight+'px'):'0';">
+                    <h3>Who can join Panjabi in Bengaluru?</h3>
+                    <div class="faq-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer"><div class="faq-answer-inner">Anyone with Panjabi roots living in Bangalore is welcome to apply. We celebrate shared culture, language, and heritage — whether you grew up in Panjab, Delhi, or anywhere else. We look for genuine community spirit and a desire to connect.</div></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="this.parentElement.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.parentElement.classList.contains('open')?(this.nextElementSibling.scrollHeight+'px'):'0';">
+                    <h3>How often do you host events?</h3>
+                    <div class="faq-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer"><div class="faq-answer-inner">We host events regularly throughout the year — from intimate networking dinners and rooftop meetups to larger cultural celebrations and city trips. Members get priority access and advance notice for all events via our members-only WhatsApp group.</div></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="this.parentElement.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.parentElement.classList.contains('open')?(this.nextElementSibling.scrollHeight+'px'):'0';">
+                    <h3>Is there a membership fee?</h3>
+                    <div class="faq-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer"><div class="faq-answer-inner">Membership details are shared after your application is reviewed and approved. We keep our community intentionally curated to maintain the quality of experience for all members. Reach out to us for current membership information.</div></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="this.parentElement.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.parentElement.classList.contains('open')?(this.nextElementSibling.scrollHeight+'px'):'0';">
+                    <h3>Can brands or businesses partner with PIB?</h3>
+                    <div class="faq-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer"><div class="faq-answer-inner">Yes! We collaborate with select brands that align with our community's values. Email us at business@panjabiinbengaluru.com with your proposal and we'll get back to you within 48 hours.</div></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="this.parentElement.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.parentElement.classList.contains('open')?(this.nextElementSibling.scrollHeight+'px'):'0';">
+                    <h3>How do I follow PIB on social media?</h3>
+                    <div class="faq-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer"><div class="faq-answer-inner">Follow us on Instagram for the latest events, highlights, and community moments. Search for <strong>@panjabiinbengaluru</strong> on Instagram and hit follow to stay updated on everything happening in the PIB universe.</div></div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
