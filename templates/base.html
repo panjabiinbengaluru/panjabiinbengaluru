@@ -176,7 +176,13 @@
         <li><a href="{{ url_for('about') }}" class="{{ 'active' if request.endpoint == 'about' }}">About Us</a></li>
         <li><a href="{{ url_for('team') }}" class="{{ 'active' if request.endpoint == 'team' }}">Our Team</a></li>
         <li><a href="{{ url_for('contact') }}" class="{{ 'active' if request.endpoint == 'contact' }}">Contact</a></li>
-        <li><a href="{{ url_for('join') }}" class="nav-cta">Join the Club</a></li>
+        
+        {% if 'member_email' in session %}
+            <li><a href="{{ url_for('dashboard') }}" class="nav-cta">Dashboard</a></li>
+        {% else %}
+            <li><a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint == 'login' }}">Login</a></li>
+            <li><a href="{{ url_for('join') }}" class="nav-cta">Join the Club</a></li>
+        {% endif %}
     </ul>
     <div class="hamburger" id="hamburger" onclick="toggleMenu()">
         <span></span><span></span><span></span>
@@ -188,7 +194,12 @@
     <a href="{{ url_for('about') }}">About Us</a>
     <a href="{{ url_for('team') }}">Our Team</a>
     <a href="{{ url_for('contact') }}">Contact</a>
-    <a href="{{ url_for('join') }}" style="color:var(--gold);font-weight:700;">Join the Club →</a>
+    {% if 'member_email' in session %}
+        <a href="{{ url_for('dashboard') }}" style="color:var(--gold);font-weight:700;">Dashboard →</a>
+    {% else %}
+        <a href="{{ url_for('login') }}">Login</a>
+        <a href="{{ url_for('join') }}" style="color:var(--gold);font-weight:700;">Join the Club →</a>
+    {% endif %}
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}

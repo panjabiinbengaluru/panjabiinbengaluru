@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | Panjabi in Bengaluru{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container { max-width: 1000px; margin: 4rem auto; padding: 0 2rem; }
+    .dashboard-header { background: rgba(10,15,30,0.5); border: 1px solid var(--border); padding: 2rem; border-radius: 12px; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .member-info h1 { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; color: var(--gold); }
+    .member-info p { color: var(--text-muted); }
+    
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; }
+    .dashboard-card { background: rgba(10,15,30,0.5); border: 1px solid var(--border); padding: 2rem; border-radius: 12px; }
+    .dashboard-card h3 { color: var(--gold); font-family: 'Space Grotesk', sans-serif; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    
+    .stats-flex { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .stat-box { text-align: center; background: rgba(200,168,75,0.05); padding: 1rem; border-radius: 8px; flex: 1; min-width: 100px; border: 1px solid rgba(200,168,75,0.1); }
+    .stat-box .value { font-size: 1.8rem; font-weight: 700; color: var(--white); display: block; }
+    .stat-box .label { font-size: 0.8rem; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+
+    .event-calendar ul { list-style: none; }
+    .event-calendar li { padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+    .event-calendar li:last-child { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header fade-up visible">
+        <div class="member-info">
+            <h1>Welcome back, {{ member.name }}!</h1>
+            <p>{{ member.email }} | {{ member.phone }}</p>
+        </div>
+        <div>
+            <span class="section-badge">Tier: {{ member.membership_tier }}</span>
+        </div>
+    </div>
+
+    <div class="dashboard-grid fade-up visible">
+        <div class="dashboard-card">
+            <h3>Your Stats</h3>
+            <div class="stats-flex">
+                <div class="stat-box">
+                    <span class="value">{{ member.active_score }}</span>
+                    <span class="label">Active Score</span>
+                </div>
+                <div class="stat-box">
+                    <span class="value">{{ member.attended_events | length }}</span>
+                    <span class="label">Events</span>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 2rem;">Quick Actions</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="{{ url_for('change_password') }}" class="btn-secondary" style="justify-content: center; padding: 10px;">Change Password</a>
+                <a href="{{ url_for('logout') }}" class="btn-secondary" style="justify-content: center; padding: 10px; border-color: rgba(239,68,68,0.5); color: #FCA5A5;">Log Out</a>
+            </div>
+        </div>
+
+        <div class="dashboard-card event-calendar">
+            <h3>Event Calendar</h3>
+            <p style="color:var(--text-muted); margin-bottom: 1rem;">Register for upcoming gatherings.</p>
+            <ul>
+                <li>
+                    <div>
+                        <strong style="color:var(--white);">Startup Networking Mixer</strong>
+                        <p style="color:var(--text-muted); font-size:0.9rem;">Date: 15th April 2026 | Koramangala</p>
+                    </div>
+                    <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem;">Register</button>
+                </li>
+                <li>
+                    <div>
+                        <strong style="color:var(--white);">Baisakhi Cultural Night</strong>
+                        <p style="color:var(--text-muted); font-size:0.9rem;">Date: 28th April 2026 | Indiranagar</p>
+                    </div>
+                    <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem;">Register</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

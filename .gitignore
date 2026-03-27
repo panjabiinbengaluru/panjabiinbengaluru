@@ -10,3 +10,6 @@ staticfiles/
 *.egg-info/
 dist/
 build/
+admin_setup.py
+db_setup.py
+setup_db.py
