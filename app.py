@@ -478,7 +478,7 @@ https://www.panjabiinbengaluru.com
         server.quit()
         return True
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        app.logger.error(f"Failed to send email: {e}")
         return False
 
 @app.route('/admin-portal/memberships/<app_id>/<action>', methods=['POST'])
