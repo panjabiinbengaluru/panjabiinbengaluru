@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Invite Error | Panjabi in Bengaluru{% endblock %}
+
+{% block extra_css %}
+<style>
+    .error-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 60vh;
+        padding: 2rem;
+    }
+    .error-card {
+        background: rgba(10,15,30,0.8);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        padding: 3rem;
+        border-radius: 12px;
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .error-icon {
+        font-size: 4rem;
+        color: #FCA5A5;
+        margin-bottom: 1.5rem;
+    }
+    .error-title {
+        color: var(--white);
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    .error-message {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    .btn-home {
+        background: rgba(200,168,75,0.1);
+        color: var(--gold);
+        border: 1px solid var(--gold);
+        padding: 10px 20px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-block;
+    }
+    .btn-home:hover {
+        background: rgba(200,168,75,0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container fade-up visible">
+    <div class="error-card">
+        <i class="fas fa-exclamation-circle error-icon"></i>
+        <h1 class="error-title">Link Unavailable</h1>
+        <p class="error-message">{{ message }}</p>
+        <a href="{{ url_for('contact') }}" class="btn-home">Contact Support</a>
+    </div>
+</div>
+{% endblock %}

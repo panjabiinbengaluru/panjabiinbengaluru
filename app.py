@@ -2,6 +2,7 @@ import os
 import re
 import string
 import random
+import secrets
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -307,6 +308,48 @@ def admin_change_password():
             return redirect(url_for('admin_dashboard'))
     return render_template('change_password.html', is_admin=True)
 
+@app.route('/admin-portal/profile/', methods=['GET', 'POST'])
+@admin_required
+def admin_profile():
+    db = get_db()
+    admin = db['admins'].find_one({'email': session['admin_email']})
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'update_profile':
+            name = request.form.get('name', '').strip()
+            if name:
+                db['admins'].update_one(
+                    {'email': session['admin_email']},
+                    {'$set': {'name': name}}
+                )
+                session['admin_name'] = name
+                flash('Profile successfully updated!', 'success')
+            else:
+                flash('Name cannot be empty.', 'error')
+                
+        elif action == 'change_password':
+            current_password = request.form.get('current_password', '')
+            new_password = request.form.get('new_password', '')
+            confirm_password = request.form.get('confirm_password', '')
+            
+            if not check_password_hash(admin.get('password_hash', ''), current_password):
+                flash('Incorrect current password.', 'error')
+            elif len(new_password) < 8:
+                flash('New password must be at least 8 characters.', 'error')
+            elif new_password != confirm_password:
+                flash('New passwords do not match.', 'error')
+            else:
+                db['admins'].update_one(
+                    {'email': session['admin_email']},
+                    {'$set': {'password_hash': generate_password_hash(new_password)}}
+                )
+                flash('Password successfully changed!', 'success')
+                
+        return redirect(url_for('admin_profile'))
+        
+    return render_template('admin_profile.html', admin=admin)
+
 @app.route('/admin-portal/')
 @admin_required
 def admin_dashboard():
@@ -328,8 +371,115 @@ def admin_dashboard():
 @role_required('membership_approver_rights')
 def admin_memberships():
     db = get_db()
-    applications = list(db['applications'].find({'status': 'pending'}).sort('submitted_at', -1))
-    return render_template('admin_memberships.html', applications=applications)
+    
+    # Filtering and Searching
+    search = request.args.get('search', '').strip()
+    date_from = request.args.get('date_from', '').strip()
+    date_to = request.args.get('date_to', '').strip()
+    sort_order = int(request.args.get('sort', -1))
+    
+    query = {'status': 'pending'}
+    
+    if search:
+        query['$or'] = [
+            {'name': {'$regex': search, '$options': 'i'}},
+            {'email': {'$regex': search, '$options': 'i'}},
+            {'phone': {'$regex': search, '$options': 'i'}}
+        ]
+        
+    if date_from or date_to:
+        query['submitted_at'] = {}
+        if date_from:
+            try:
+                date_obj_from = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                query['submitted_at']['$gte'] = date_obj_from
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_obj_to = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=1)
+                query['submitted_at']['$lt'] = date_obj_to
+            except ValueError:
+                pass
+        if not query['submitted_at']:
+            del query['submitted_at']
+
+    applications = list(db['applications'].find(query).sort('submitted_at', sort_order))
+    return render_template('admin_memberships.html', applications=applications,
+                           search=search, date_from=date_from, date_to=date_to, sort=sort_order)
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_approval_email(member_name, member_email, temp_password, whatsapp_link):
+    subject = "Welcome to Panjabi in Bengaluru! Your Membership is Approved 🎉"
+    
+    sender_email = os.environ.get('MAIL_USERNAME', 'no-reply@panjabiinbengaluru.com')
+    sender_password = os.environ.get('MAIL_PASSWORD', '')
+    smtp_server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    smtp_port = int(os.environ.get('MAIL_PORT', 587))
+    
+    body = f"""Greetings {member_name},
+
+We are absolutely thrilled to share that your membership application has been approved! Welcome to the Panjabi in Bengaluru family.
+
+Whether you are looking to celebrate our shared heritage, build new professional connections, or simply find a vibrant slice of Punjab right here in Namma Bengaluru, you have come to the exact right place. We cannot wait to see the energy and ideas you will bring to our community.
+
+To get you started, here are your official access details for the community portal:
+
+Your Login Credentials
+Please use the details below to log into your new account. For your security, you will be prompted to create a new, permanent password immediately upon your first login.
+
+Login Portal: https://www.panjabiinbengaluru.com/login
+Registered Email: {member_email}
+Password: {temp_password}
+
+Join the Conversation on WhatsApp
+Our community is highly active on WhatsApp, where we share real-time updates, event details, and everyday conversations.
+"""
+
+    if whatsapp_link:
+        body += f"""
+Click the link below to join our official WhatsApp Community Group:
+👉 {whatsapp_link}
+
+Note: This is a personalized, single-use invite link generated specifically for you. It will automatically expire once you have joined the group or within 48 hours, so please be sure to hop in soon!
+"""
+    else:
+        body += "\n(WhatsApp invite link will be shared with you shortly by the Admin team)\n"
+
+    body += """
+If you have any trouble logging in or accessing the group, simply reply to this email, and our team will get it sorted out for you right away.
+
+Once again, welcome to the community. We look forward to seeing you at our next meetup!
+
+Warm regards,
+
+Admin Team, 
+Panjabi in Bengaluru
+https://www.panjabiinbengaluru.com
+"""
+
+    if not sender_password:
+        return False  # Email not configured
+        
+    msg = MIMEMultipart()
+    msg['From'] = f"Admin Team, Panjabi in Bengaluru <{sender_email}>"
+    msg['To'] = member_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
 
 @app.route('/admin-portal/memberships/<app_id>/<action>', methods=['POST'])
 @admin_required
@@ -344,6 +494,7 @@ def process_membership(app_id, action):
         return redirect(url_for('admin_memberships'))
 
     if action == 'approve':
+        send_wa_invite = request.form.get('send_wa_invite')
         random_pwd = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
         
         member_data = {
@@ -362,9 +513,24 @@ def process_membership(app_id, action):
             db['members'].insert_one(member_data)
             db['applications'].update_one({'_id': ObjectId(app_id)}, {'$set': {'status': 'approved'}})
             
-            # [Future Scope] Send actual Email Here
-            # For now we simulate an email in the flash message
-            flash(f"Approved! Member created. (Simulated Email: Welcome {app_doc['name']}, password is {random_pwd})", 'success')
+            invite_url = None
+            if send_wa_invite:
+                token = secrets.token_urlsafe(16)
+                db['whatsapp_invites'].insert_one({
+                    'token': token,
+                    'application_id': app_id,
+                    'member_email': app_doc['email'],
+                    'used': False,
+                    'created_at': datetime.now(timezone.utc)
+                })
+                invite_url = url_for('whatsapp_invite', token=token, _external=True)
+
+            email_sent = send_approval_email(app_doc['name'], app_doc['email'], random_pwd, invite_url)
+            
+            if email_sent:
+                flash(f"Approved! Welcome email sent to {app_doc['name']}.", 'success')
+            else:
+                flash(f"Approved! Member created, but failed to send email (check SMTP info). Password is {random_pwd}", 'success')
             
         except Exception as e:
             flash('Error creating member. Perhaps email already exists?', 'error')
@@ -457,6 +623,27 @@ def manage_admins():
         
     admins = list(db['admins'].find().sort('name', 1))
     return render_template('manage_admins.html', admins=admins)
+
+@app.route('/invite/<token>')
+def whatsapp_invite(token):
+    db = get_db()
+    invite = db['whatsapp_invites'].find_one({'token': token})
+    
+    if not invite:
+        return render_template('invite_error.html', message="Invalid invite link. Please contact the admin.")
+        
+    if invite.get('used'):
+        return render_template('invite_error.html', message="This invite link has expired. Please contact the admin.")
+        
+    # Mark as used immediately to make it single-use
+    db['whatsapp_invites'].update_one(
+        {'_id': invite['_id']}, 
+        {'$set': {'used': True, 'used_at': datetime.now(timezone.utc)}}
+    )
+    
+    # Grab the actual, static WA group link from environment variables (fallback if not set)
+    actual_wa_link = os.environ.get('WHATSAPP_COMMUNITY_LINK', 'https://chat.whatsapp.com/ReplaceWithActualLink')
+    return redirect(actual_wa_link)
 
 if __name__ == '__main__':
     app.run(debug=True)

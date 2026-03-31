@@ -30,7 +30,8 @@
                 {% if roles.broadcasting_rights %}<span class="role-badge">Broadcaster</span>{% endif %}
             </div>
         </div>
-        <div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('admin_profile') }}" class="btn-secondary" style="border-color: var(--gold); color: var(--gold); padding: 10px 20px;"><i class="fas fa-user-edit"></i> Profile</a>
             <a href="{{ url_for('admin_logout') }}" class="btn-secondary" style="border-color: rgba(239,68,68,0.5); color: #FCA5A5; padding: 10px 20px;">Exit Admin</a>
         </div>
     </div>
