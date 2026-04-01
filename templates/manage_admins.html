@@ -22,6 +22,8 @@
     .admin-card { background: rgba(10,15,30,0.5); border: 1px solid var(--border); padding: 1.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start; }
     
     .role-badge { display: inline-block; background: rgba(200,168,75,0.1); border: 1px solid var(--gold); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; color: var(--gold); margin-right: 5px; margin-top: 5px;}
+    .btn-delete { background: rgba(239,68,68,0.1); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.4); padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; transition: all 0.3s; }
+    .btn-delete:hover { background: rgba(239,68,68,0.2); }
 </style>
 {% endblock %}
 
@@ -36,6 +38,7 @@
         <div class="form-panel">
             <h3 style="color:var(--white); margin-bottom: 1.5rem;">Create New Admin</h3>
             <form method="POST">
+                <input type="hidden" name="action" value="create">
                 <div class="form-group">
                     <label>Full Name</label>
                     <input type="text" name="name" required placeholder="John Doe">
@@ -82,6 +85,19 @@
                             {% if admin.roles.membership_approver_rights %}<span class="role-badge">Membership Approver</span>{% endif %}
                             {% if admin.roles.broadcasting_rights %}<span class="role-badge">Broadcaster</span>{% endif %}
                         </div>
+                    </div>
+                    <div>
+                        {% if admin.email != current_admin_email %}
+                        <form method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this admin account?');">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="admin_id" value="{{ admin._id }}">
+                            <button type="submit" class="btn-delete" title="Delete Admin">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                        {% else %}
+                            <span style="font-size: 0.8rem; color: #6EE7B7; border: 1px solid rgba(16,185,129,0.4); padding: 4px 8px; border-radius: 4px; background: rgba(16,185,129,0.1);">You</span>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}

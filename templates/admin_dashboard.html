@@ -64,6 +64,8 @@
         <div class="module-card">
             <h3><i class="fas fa-chart-line" style="color:var(--gold); margin-right: 10px;"></i> Portal Stats</h3>
             <p>Total Live Members: <strong>{{ total_members }}</strong></p>
+            <p style="margin-top: 5px; margin-bottom: 1rem;">View detailed statistics and usage for approved members.</p>
+            <a href="{{ url_for('admin_stats') }}" class="btn-primary" style="padding: 10px 20px;">View Stats</a>
         </div>
     </div>
 </div>

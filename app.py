@@ -190,6 +190,9 @@ def login():
         member = db['members'].find_one({'email': email})
 
         if member and check_password_hash(member.get('password_hash', ''), password):
+            # Track login to update member stats
+            db['members'].update_one({'email': email}, {'$set': {'has_logged_in': True}})
+            
             session['member_email'] = member['email']
             session['member_name'] = member.get('name', 'Member')
             
@@ -219,7 +222,8 @@ def change_password():
                 {'email': session['member_email']},
                 {'$set': {
                     'password_hash': generate_password_hash(new_password),
-                    'is_first_login': False
+                    'is_first_login': False,
+                    'has_changed_password': True
                 }}
             )
             flash('Password successfully updated!', 'success')
@@ -506,7 +510,13 @@ def process_membership(app_id, action):
             'active_score': 0,
             'attended_events': [],
             'is_first_login': True,
-            'invite_expires_at': datetime.now(timezone.utc) + timedelta(hours=48)
+            'invite_expires_at': datetime.now(timezone.utc) + timedelta(hours=48),
+            'has_logged_in': False,
+            'has_changed_password': False,
+            'has_joined_whatsapp': False,
+            'approved_at': datetime.now(timezone.utc),
+            'approved_by_email': session.get('admin_email'),
+            'approved_by_name': session.get('admin_name')
         }
         
         try:
@@ -589,40 +599,68 @@ def approve_event(event_id):
 def manage_admins():
     db = get_db()
     if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        email = request.form.get('email', '').strip()
-        temp_password = request.form.get('password', '')
+        action = request.form.get('action', 'create')
         
-        roles = {
-            'all_access': request.form.get('all_access') == 'on',
-            'membership_approver_rights': request.form.get('membership_approver_rights') == 'on',
-            'broadcasting_rights': request.form.get('broadcasting_rights') == 'on'
-        }
-        
-        if not name or not email or not temp_password:
-            flash('Name, Email, and Password are required.', 'error')
-        else:
-            existing = db['admins'].find_one({'email': email})
-            if existing:
-                flash('An admin with this email already exists.', 'error')
+        if action == 'create':
+            name = request.form.get('name', '').strip()
+            email = request.form.get('email', '').strip()
+            temp_password = request.form.get('password', '')
+            
+            roles = {
+                'all_access': request.form.get('all_access') == 'on',
+                'membership_approver_rights': request.form.get('membership_approver_rights') == 'on',
+                'broadcasting_rights': request.form.get('broadcasting_rights') == 'on'
+            }
+            
+            if not name or not email or not temp_password:
+                flash('Name, Email, and Password are required.', 'error')
             else:
-                new_admin = {
-                    'email': email,
-                    'name': name,
-                    'password_hash': generate_password_hash(temp_password),
-                    'is_first_login': True,
-                    'roles': roles
-                }
-                try:
-                    db['admins'].insert_one(new_admin)
-                    flash(f'Admin {name} created successfully! Please share their credentials.', 'success')
-                except Exception as e:
-                    flash('Failed to create admin due to a database error.', 'error')
-                    
+                existing = db['admins'].find_one({'email': email})
+                if existing:
+                    flash('An admin with this email already exists.', 'error')
+                else:
+                    new_admin = {
+                        'email': email,
+                        'name': name,
+                        'password_hash': generate_password_hash(temp_password),
+                        'is_first_login': True,
+                        'roles': roles
+                    }
+                    try:
+                        db['admins'].insert_one(new_admin)
+                        flash(f'Admin {name} created successfully! Please share their credentials.', 'success')
+                    except Exception as e:
+                        flash('Failed to create admin due to a database error.', 'error')
+                        
+        elif action == 'delete':
+            admin_id = request.form.get('admin_id')
+            from bson.objectid import ObjectId
+            
+            target_admin = db['admins'].find_one({'_id': ObjectId(admin_id)})
+            if target_admin and target_admin['email'] == session['admin_email']:
+                flash('You cannot delete your own admin account.', 'error')
+            else:
+                db['admins'].delete_one({'_id': ObjectId(admin_id)})
+                if target_admin:
+                    flash(f"Admin {target_admin.get('name', 'Account')} securely deleted.", 'success')
+
         return redirect(url_for('manage_admins'))
         
     admins = list(db['admins'].find().sort('name', 1))
-    return render_template('manage_admins.html', admins=admins)
+    return render_template('manage_admins.html', admins=admins, current_admin_email=session.get('admin_email'))
+
+@app.route('/admin-portal/stats/')
+@admin_required
+def admin_stats():
+    db = get_db()
+    # All admins can perhaps see stats, or we restrict it? Letting all admins see for now.
+    
+    # Sorting and basic filtering
+    sort_order = int(request.args.get('sort', -1))
+    
+    members = list(db['members'].find().sort('approved_at', sort_order))
+    return render_template('admin_stats.html', members=members, sort=sort_order)
+
 
 @app.route('/invite/<token>')
 def whatsapp_invite(token):
@@ -639,6 +677,11 @@ def whatsapp_invite(token):
     db['whatsapp_invites'].update_one(
         {'_id': invite['_id']}, 
         {'$set': {'used': True, 'used_at': datetime.now(timezone.utc)}}
+    )
+    # Also update member stats to indicate they clicked link
+    db['members'].update_one(
+        {'email': invite.get('member_email')},
+        {'$set': {'has_joined_whatsapp': True}}
     )
     
     # Grab the actual, static WA group link from environment variables (fallback if not set)
