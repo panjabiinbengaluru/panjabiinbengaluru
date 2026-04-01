@@ -178,7 +178,88 @@
                         </select>
                     </div>
                 </div>
+                
                 <div class="form-divider"></div>
+                <div class="form-section-label"><i class="fas fa-briefcase"></i> Professional Profile</div>
+                
+                <div class="form-group">
+                    <label class="form-label">Profile Overview *</label>
+                    <textarea name="profile_overview" class="form-textarea" placeholder="Provide a brief overview of your professional background..." required></textarea>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Career Aspirations *</label>
+                        <input type="text" name="career_aspiration" class="form-input" placeholder="e.g., Software Engineer, VP Sales" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Top 5 Skills (Comma separated) *</label>
+                        <input type="text" name="skills" class="form-input" placeholder="e.g., Python, Sales, Marketing, Design, Leadership" required>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="form-group">
+                        <label class="form-label">Are you a Founder? *</label>
+                        <select name="is_founder" class="form-select" required>
+                            <option value="" disabled selected>Select</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Are you an Entrepreneur? *</label>
+                        <select name="is_entrepreneur" class="form-select" required>
+                            <option value="" disabled selected>Select</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Are you an Angel/Seed Investor? *</label>
+                        <select name="is_investor" class="form-select" required>
+                            <option value="" disabled selected>Select</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-divider"></div>
+                <div class="form-section-label"><i class="fas fa-link"></i> Social Links</div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">LinkedIn URL *</label>
+                        <input type="url" name="linkedin_url" class="form-input" placeholder="https://linkedin.com/in/username" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Instagram URL</label>
+                        <input type="url" name="instagram_url" class="form-input" placeholder="https://instagram.com/username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Facebook URL</label>
+                        <input type="url" name="facebook_url" class="form-input" placeholder="https://facebook.com/username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Twitter/X URL</label>
+                        <input type="url" name="twitter_url" class="form-input" placeholder="https://twitter.com/username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">GitHub URL</label>
+                        <input type="url" name="github_url" class="form-input" placeholder="https://github.com/username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Kaggle URL</label>
+                        <input type="url" name="kaggle_url" class="form-input" placeholder="https://kaggle.com/username">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label class="form-label">Other Portfolio/Link</label>
+                        <input type="url" name="other_link" class="form-input" placeholder="https://yourwebsite.com">
+                    </div>
+                </div>
+
+<div class="form-divider"></div>
                 <div class="form-section-label"><i class="fas fa-pen"></i> A Little About You</div>
                 <div class="form-group">
                     <label class="form-label">Why do you want to join PIB? *</label>

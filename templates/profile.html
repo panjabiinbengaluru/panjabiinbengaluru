@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}My Profile | Panjabi in Bengaluru{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container { max-width: 800px; margin: 4rem auto; padding: 0 2rem; }
+    .form-box { background: rgba(10,15,30,0.5); padding: 3rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label { display: block; margin-bottom: 0.5rem; font-family: 'Space Grotesk', sans-serif; color: var(--gold); }
+    .form-input, .form-textarea, .form-select { width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--white); font-family: inherit; }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--gold); }
+    .form-textarea { resize: vertical; min-height: 100px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 2rem 0; }
+    .form-section-label { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; margin-bottom: 1rem; color: var(--gold); border-bottom: 1px solid rgba(200,168,75,0.2); padding-bottom: 0.5rem; }
+    .btn-primary { width: 100%; padding: 1rem; border: none; background: var(--gold); color: #000; font-family: 'Space Grotesk', sans-serif; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; }
+    .btn-primary:hover { background: #fff; transform: translateY(-2px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container fade-up visible">
+    <div class="form-box">
+        <h1 style="color: var(--gold); margin-bottom: 2rem; font-family: 'Space Grotesk', sans-serif; text-align: center;">Edit Profile</h1>
+        
+        <form method="POST" action="{{ url_for('profile') }}">
+            <div class="form-section-label"><i class="fas fa-user-circle"></i> Username & Identity</div>
+            
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                {% if member.has_set_username %}
+                    <input type="text" name="username" class="form-input" value="{{ member.username }}" disabled style="opacity: 0.7; cursor: not-allowed;" title="You have already set your username.">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Public profile URL: <a href="{{ url_for('public_profile', username=member.username, _external=True) }}" target="_blank" style="color: var(--gold); text-decoration: underline;">{{ url_for('public_profile', username=member.username, _external=True) }}</a></p>
+                {% else %}
+                    <input type="text" name="username" class="form-input" value="{{ member.username }}" required>
+                    <p style="font-size: 0.8rem; color: #ff6b6b; margin-top: 0.5rem;">Note: You can only customize your username ONCE. Choose wisely!</p>
+                {% endif %}
+            </div>
+
+            <div class="form-divider"></div>
+            <div class="form-section-label"><i class="fas fa-briefcase"></i> Professional Profile</div>
+            
+            <div class="form-group">
+                <label class="form-label">Profile Overview *</label>
+                <textarea name="profile_overview" class="form-textarea" placeholder="Provide a brief overview of your professional background..." required>{{ member.get('profile_overview', '') }}</textarea>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Career Aspirations *</label>
+                    <input type="text" name="career_aspiration" class="form-input" value="{{ member.get('career_aspiration', '') }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Top 5 Skills (Comma separated) *</label>
+                    <input type="text" name="skills" class="form-input" value="{{ member.get('skills', []) | join(', ') }}" required>
+                </div>
+            </div>
+
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div class="form-group">
+                    <label class="form-label">Are you a Founder? *</label>
+                    <select name="is_founder" class="form-select" required>
+                        <option value="yes" {% if member.get('is_founder') %}selected{% endif %}>Yes</option>
+                        <option value="no" {% if not member.get('is_founder') %}selected{% endif %}>No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Are you an Entrepreneur? *</label>
+                    <select name="is_entrepreneur" class="form-select" required>
+                        <option value="yes" {% if member.get('is_entrepreneur') %}selected{% endif %}>Yes</option>
+                        <option value="no" {% if not member.get('is_entrepreneur') %}selected{% endif %}>No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Invests in startups? *</label>
+                    <select name="is_investor" class="form-select" required>
+                        <option value="yes" {% if member.get('is_investor') %}selected{% endif %}>Yes</option>
+                        <option value="no" {% if not member.get('is_investor') %}selected{% endif %}>No</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-divider"></div>
+            <div class="form-section-label"><i class="fas fa-link"></i> Social Links</div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">LinkedIn URL *</label>
+                    <input type="url" name="linkedin_url" class="form-input" value="{{ member.get('social_links', {}).get('linkedin', '') }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Instagram URL</label>
+                    <input type="url" name="instagram_url" class="form-input" value="{{ member.get('social_links', {}).get('instagram', '') }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Facebook URL</label>
+                    <input type="url" name="facebook_url" class="form-input" value="{{ member.get('social_links', {}).get('facebook', '') }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Twitter/X URL</label>
+                    <input type="url" name="twitter_url" class="form-input" value="{{ member.get('social_links', {}).get('twitter', '') }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">GitHub URL</label>
+                    <input type="url" name="github_url" class="form-input" value="{{ member.get('social_links', {}).get('github', '') }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kaggle URL</label>
+                    <input type="url" name="kaggle_url" class="form-input" value="{{ member.get('social_links', {}).get('kaggle', '') }}">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label">Other Portfolio/Link</label>
+                    <input type="url" name="other_link" class="form-input" value="{{ member.get('social_links', {}).get('other', '') }}">
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <button type="submit" class="btn-primary">Save Profile</button>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="{{ url_for('dashboard') }}" style="color: var(--text-muted); text-decoration: none;">Back to Dashboard</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

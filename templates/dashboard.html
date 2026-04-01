@@ -29,9 +29,17 @@
         <div class="member-info">
             <h1>Welcome back, {{ member.name }}!</h1>
             <p>{{ member.email }} | {{ member.phone }}</p>
+            {% if member.username %}
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+                Public Profile: <a href="{{ url_for('public_profile', username=member.username, _external=True) }}" target="_blank" style="color: var(--gold); text-decoration: underline;">
+                    {{ url_for('public_profile', username=member.username, _external=True) }}
+                </a>
+            </p>
+            {% endif %}
         </div>
-        <div>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
             <span class="section-badge">Tier: {{ member.membership_tier }}</span>
+            <a href="{{ url_for('profile') }}" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem; text-decoration: none; color: black;">My Profile</a>
         </div>
     </div>
 

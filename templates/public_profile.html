@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ member.name }}'s Profile | Panjabi in Bengaluru{% endblock %}
+
+{% block extra_css %}
+<style>
+    .public-profile-container { max-width: 800px; margin: 4rem auto; padding: 0 2rem; }
+    .profile-header { background: rgba(10,15,30,0.5); padding: 3rem 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center; margin-bottom: 2rem; }
+    .profile-name { font-family: 'Space Grotesk', sans-serif; font-size: 2.5rem; color: var(--gold); margin-bottom: 0.5rem; }
+    .profile-headline { font-size: 1.2rem; color: var(--text-light); margin-bottom: 1rem; }
+    .profile-badges { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .badge { background: rgba(200,168,75,0.1); color: var(--gold); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; border: 1px solid rgba(200,168,75,0.2); text-transform: uppercase; letter-spacing: 1px; }
+
+    .profile-section { background: rgba(10,15,30,0.5); padding: 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 2rem; }
+    .profile-section h3 { font-family: 'Space Grotesk', sans-serif; color: var(--gold); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
+    
+    .social-links { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+    .social-link { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 1.2rem; transition: all 0.3s ease; text-decoration: none; }
+    .social-link:hover { background: var(--gold); color: #000; transform: translateY(-2px); }
+
+    .skills-container { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .skill-tag { background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="public-profile-container fade-up visible">
+    
+    <div class="profile-header">
+        <h1 class="profile-name">{{ member.name }}</h1>
+        <div class="profile-headline">{{ member.get('profession', '') }} {% if member.get('company') %}at {{ member.company }}{% endif %}</div>
+        
+        <div class="profile-badges">
+            <span class="badge" title="Membership Tier"><i class="fas fa-crown"></i> {{ member.get('membership_tier', 'Bronze') }}</span>
+            {% if member.get('is_founder') %}<span class="badge">Founder</span>{% endif %}
+            {% if member.get('is_entrepreneur') %}<span class="badge">Entrepreneur</span>{% endif %}
+            {% if member.get('is_investor') %}<span class="badge">Investor</span>{% endif %}
+            {% if member.get('area') %}<span class="badge"><i class="fas fa-map-marker-alt"></i> {{ member.area }}</span>{% endif %}
+        </div>
+
+        {% if member.get('social_links') %}
+        <div class="social-links">
+            {% if member.social_links.linkedin %}
+            <a href="{{ member.social_links.linkedin }}" target="_blank" class="social-link" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+            {% endif %}
+            {% if member.social_links.twitter %}
+            <a href="{{ member.social_links.twitter }}" target="_blank" class="social-link" title="Twitter/X"><i class="fab fa-twitter"></i></a>
+            {% endif %}
+            {% if member.social_links.github %}
+            <a href="{{ member.social_links.github }}" target="_blank" class="social-link" title="GitHub"><i class="fab fa-github"></i></a>
+            {% endif %}
+            {% if member.social_links.instagram %}
+            <a href="{{ member.social_links.instagram }}" target="_blank" class="social-link" title="Instagram"><i class="fab fa-instagram"></i></a>
+            {% endif %}
+            {% if member.social_links.facebook %}
+            <a href="{{ member.social_links.facebook }}" target="_blank" class="social-link" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+            {% endif %}
+            {% if member.social_links.kaggle %}
+            <a href="{{ member.social_links.kaggle }}" target="_blank" class="social-link" title="Kaggle"><i class="fab fa-kaggle"></i></a>
+            {% endif %}
+            {% if member.social_links.other %}
+            <a href="{{ member.social_links.other }}" target="_blank" class="social-link" title="Other Portfolio"><i class="fas fa-link"></i></a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if member.get('profile_overview') %}
+    <div class="profile-section">
+        <h3><i class="fas fa-user"></i> About Me</h3>
+        <p style="line-height: 1.6; white-space: pre-line;">{{ member.profile_overview }}</p>
+    </div>
+    {% endif %}
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        {% if member.get('skills') and member.skills|length > 0 %}
+        <div class="profile-section" style="margin-bottom: 0;">
+            <h3><i class="fas fa-tools"></i> Top Skills</h3>
+            <div class="skills-container">
+                {% for skill in member.skills %}
+                <span class="skill-tag">{{ skill }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if member.get('career_aspiration') %}
+        <div class="profile-section" style="margin-bottom: 0;">
+            <h3><i class="fas fa-rocket"></i> Looking for / Aspirations</h3>
+            <p>{{ member.career_aspiration }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

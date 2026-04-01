@@ -160,9 +160,32 @@ def join():
         source = request.form.get("source", "").strip()
         reason = request.form.get("reason", "").strip()
 
-        required = [name, age, email, phone, profession, area, source, reason]
+        # New fields for profile
+        profile_overview = request.form.get("profile_overview", "").strip()
+        linkedin_url = request.form.get("linkedin_url", "").strip()
+        instagram_url = request.form.get("instagram_url", "").strip()
+        facebook_url = request.form.get("facebook_url", "").strip()
+        twitter_url = request.form.get("twitter_url", "").strip()
+        github_url = request.form.get("github_url", "").strip()
+        kaggle_url = request.form.get("kaggle_url", "").strip()
+        other_link = request.form.get("other_link", "").strip()
+
+        career_aspiration = request.form.get("career_aspiration", "").strip()
+        skills = request.form.get("skills", "").strip()
+        is_founder = request.form.get("is_founder") == "yes"
+        is_entrepreneur = request.form.get("is_entrepreneur") == "yes"
+        is_investor = request.form.get("is_investor") == "yes"
+
+        required = [
+            name, age, email, phone, profession, area, source, reason, 
+            profile_overview, linkedin_url, career_aspiration, skills
+        ]
         if not all(required):
-            flash("Please fill in all required fields.", "error")
+            flash("Please fill in all mandatory fields including LinkedIn, Profile Overview, Career Aspirations, and Skills.", "error")
+            return redirect(url_for("join"))
+
+        if len([s for s in skills.split(",") if s.strip()]) > 5:
+            flash("Please provide up to 5 skills.", "error")
             return redirect(url_for("join"))
 
         # Validate Indian mobile number
@@ -184,6 +207,21 @@ def join():
             "area": area,
             "source": source,
             "reason": reason,
+            "profile_overview": profile_overview,
+            "social_links": {
+                "linkedin": linkedin_url,
+                "instagram": instagram_url,
+                "facebook": facebook_url,
+                "twitter": twitter_url,
+                "github": github_url,
+                "kaggle": kaggle_url,
+                "other": other_link,
+            },
+            "career_aspiration": career_aspiration,
+            "skills": [s.strip() for s in skills.split(",")],
+            "is_founder": is_founder,
+            "is_entrepreneur": is_entrepreneur,
+            "is_investor": is_investor,
             "status": "pending",
             "submitted_at": datetime.now(timezone.utc),
         }
@@ -265,6 +303,65 @@ def change_password():
             return redirect(url_for("dashboard"))
 
     return render_template("change_password.html")
+
+
+@app.route("/profile/", methods=["GET", "POST"])
+@login_required
+def profile():
+    db = get_db()
+    member = db["members"].find_one({"email": session.get("member_email")})
+    
+    if request.method == "POST":
+        updates = {}
+        
+        if not member.get("has_set_username", False):
+            new_username = request.form.get("username", "").strip()
+            if new_username:
+                existing = db["members"].find_one({"username": new_username, "email": {"$ne": member["email"]}})
+                if existing:
+                    flash("Username is already taken. Please choose another.", "error")
+                    return redirect(url_for('profile'))
+                updates["username"] = new_username
+                updates["has_set_username"] = True
+                
+        updates["profile_overview"] = request.form.get("profile_overview", "").strip()
+        updates["career_aspiration"] = request.form.get("career_aspiration", "").strip()
+        
+        skills = request.form.get("skills", "").strip()
+        if skills:
+            updates["skills"] = [s.strip() for s in skills.split(",")][:5]
+            
+        updates["is_founder"] = request.form.get("is_founder") == "yes"
+        updates["is_entrepreneur"] = request.form.get("is_entrepreneur") == "yes"
+        updates["is_investor"] = request.form.get("is_investor") == "yes"
+        
+        social_links = {
+            "linkedin": request.form.get("linkedin_url", "").strip(),
+            "instagram": request.form.get("instagram_url", "").strip(),
+            "facebook": request.form.get("facebook_url", "").strip(),
+            "twitter": request.form.get("twitter_url", "").strip(),
+            "github": request.form.get("github_url", "").strip(),
+            "kaggle": request.form.get("kaggle_url", "").strip(),
+            "other": request.form.get("other_link", "").strip(),
+        }
+        updates["social_links"] = social_links
+        
+        db["members"].update_one({"email": member["email"]}, {"$set": updates})
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for("profile"))
+
+    return render_template("profile.html", member=member)
+
+
+@app.route("/u/<username>")
+def public_profile(username):
+    db = get_db()
+    member = db["members"].find_one({"username": username})
+    if not member:
+        flash("Profile not found.", "error")
+        return redirect(url_for('home'))
+        
+    return render_template("public_profile.html", member=member)
 
 
 @app.route("/dashboard/")
@@ -858,9 +955,21 @@ def process_membership(app_id, action):
 
         member_data = {
             "email": app_doc["email"],
+            "username": f"user_{str(app_doc['_id'])[:8]}", # Base fallback
+            "has_set_username": False,
             "password_hash": generate_password_hash(random_pwd),
             "name": app_doc["name"],
             "phone": app_doc["phone"],
+            "profile_overview": app_doc.get("profile_overview", ""),
+            "social_links": app_doc.get("social_links", {}),
+            "career_aspiration": app_doc.get("career_aspiration", ""),
+            "skills": app_doc.get("skills", []),
+            "is_founder": app_doc.get("is_founder", False),
+            "is_entrepreneur": app_doc.get("is_entrepreneur", False),
+            "is_investor": app_doc.get("is_investor", False),
+            "profession": app_doc.get("profession", ""),
+            "company": app_doc.get("company", ""),
+            "area": app_doc.get("area", ""),
             "membership_tier": "Bronze",
             "active_score": 0,
             "attended_events": [],

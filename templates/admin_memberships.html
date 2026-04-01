@@ -69,6 +69,7 @@
             <tr>
                 <th>Applicant Info</th>
                 <th>Professional Details</th>
+                <th>Socials & Status</th>
                 <th>Reason to Join</th>
                 <th>Actions</th>
             </tr>
@@ -82,13 +83,41 @@
                     <p><i class="fas fa-phone"></i> {{ app.phone }}</p>
                     <p><i class="fas fa-map-marker-alt"></i> {{ app.area }}</p>
                 </td>
-                <td>
+                <td style="max-width: 250px;">
                     <span style="color:var(--white);">{{ app.profession }}</span>
                     <p>at {{ app.company }}</p>
+                    {% if app.skills %}
+                        <p style="font-size:0.75rem; margin-top:5px; color:var(--gold);"><strong>Skills:</strong> {{ app.skills[:5]|join(', ') }}</p>
+                    {% endif %}
+                    {% if app.career_aspiration %}
+                        <p style="font-size:0.75rem; margin-top:2px; color:var(--text-muted);"><strong>Aspiration:</strong> {{ app.career_aspiration }}</p>
+                    {% endif %}
+                </td>
+                <td style="max-width: 150px;">
+                    {% if app.social_links %}
+                        <div style="font-size: 1.2rem; margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+                            {% if app.social_links.linkedin %}<a href="{{ app.social_links.linkedin }}" target="_blank" style="color:#0a66c2;" title="LinkedIn"><i class="fab fa-linkedin"></i></a>{% endif %}
+                            {% if app.social_links.github %}<a href="{{ app.social_links.github }}" target="_blank" style="color:var(--white);" title="GitHub"><i class="fab fa-github"></i></a>{% endif %}
+                            {% if app.social_links.twitter %}<a href="{{ app.social_links.twitter }}" target="_blank" style="color:#1da1f2;" title="Twitter"><i class="fab fa-twitter"></i></a>{% endif %}
+                            {% if app.social_links.instagram %}<a href="{{ app.social_links.instagram }}" target="_blank" style="color:#e1306c;" title="Instagram"><i class="fab fa-instagram"></i></a>{% endif %}
+                            {% if app.social_links.facebook %}<a href="{{ app.social_links.facebook }}" target="_blank" style="color:#1877f2;" title="Facebook"><i class="fab fa-facebook"></i></a>{% endif %}
+                            {% if app.social_links.kaggle %}<a href="{{ app.social_links.kaggle }}" target="_blank" style="color:#20beff;" title="Kaggle"><i class="fab fa-kaggle"></i></a>{% endif %}
+                        </div>
+                    {% endif %}
+                    <div style="display: flex; gap: 4px; flex-direction: column;">
+                        {% if app.is_founder == 'yes' %}<span style="font-size: 0.70rem; padding: 2px 6px; border-radius: 4px; background: rgba(16,185,129,0.2); color:#10b981; border: 1px solid rgba(16,185,129,0.3); display:inline-block; text-align:center;">Founder</span>{% endif %}
+                        {% if app.is_entrepreneur == 'yes' %}<span style="font-size: 0.70rem; padding: 2px 6px; border-radius: 4px; background: rgba(59,130,246,0.2); color:#3b82f6; border: 1px solid rgba(59,130,246,0.3); display:inline-block; text-align:center;">Entrepreneur</span>{% endif %}
+                        {% if app.is_investor == 'yes' %}<span style="font-size: 0.70rem; padding: 2px 6px; border-radius: 4px; background: rgba(245,158,11,0.2); color:#f59e0b; border: 1px solid rgba(245,158,11,0.3); display:inline-block; text-align:center;">Investor</span>{% endif %}
+                    </div>
                 </td>
                 <td style="max-width: 300px;">
+                    {% if app.profile_overview %}
+                        <div style="font-size: 0.8rem; margin-bottom: 10px;">
+                            <strong style="color:var(--gold);">Overview:</strong> {{ app.profile_overview }}
+                        </div>
+                    {% endif %}
                     <p style="white-space: pre-wrap; font-style: italic;">"{{ app.reason }}"</p>
-                    <p style="font-size: 0.75rem; color:var(--gold);">Source: {{ app.source }}</p>
+                    <p style="font-size: 0.75rem; color:var(--text-muted); margin-top: 5px;">Source: {{ app.source }}</p>
                 </td>
                 <td>
                     <div class="actions">
