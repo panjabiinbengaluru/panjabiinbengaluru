@@ -30,7 +30,7 @@
                 <label class="form-label">Username</label>
                 {% if member.has_set_username %}
                     <input type="text" name="username" class="form-input" value="{{ member.username }}" disabled style="opacity: 0.7; cursor: not-allowed;" title="You have already set your username.">
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Public profile URL: <a href="{{ url_for('public_profile', username=member.username, _external=True) }}" target="_blank" style="color: var(--gold); text-decoration: underline;">{{ url_for('public_profile', username=member.username, _external=True) }}</a></p>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Public profile URL: <a href="{{ app_domain }}{{ url_for('public_profile', username=member.username) }}" target="_blank" style="color: var(--gold); text-decoration: underline;">{{ app_domain }}{{ url_for('public_profile', username=member.username) }}</a></p>
                 {% else %}
                     <input type="text" name="username" class="form-input" value="{{ member.username }}" required>
                     <p style="font-size: 0.8rem; color: #ff6b6b; margin-top: 0.5rem;">Note: You can only customize your username ONCE. Choose wisely!</p>

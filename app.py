@@ -31,6 +31,21 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "panjabi-in-bengaluru-secret-2024")
 
+@app.context_processor
+def inject_domain():
+    domain = os.environ.get("DOMAIN") or os.environ.get("VERCEL_URL")
+    if domain:
+        # If it doesn't have http schema (like VERCEL_URL), prepend https://
+        if not domain.startswith("http"):
+            domain = "https://" + domain
+        domain = domain.rstrip('/')
+    else:
+        try:
+            domain = request.url_root.rstrip('/')
+        except RuntimeError:
+            domain = ""
+    return dict(app_domain=domain)
+
 # ── MongoDB Atlas ────────────────────────────────────────────────────────────
 MONGO_URI = os.environ.get("MONGO_URI", "")
 
