@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Edit Event | Admin Portal{% endblock %}
+
+{% block content %}
+<div class="admin-container fade-up visible">
+    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+        <h2 class="section-title" style="font-size: 2rem;">Edit <span>Event</span></h2>
+        <a href="{{ url_for('admin_events') }}" class="btn-secondary" style="padding: 10px;">← Back to Events</a>
+    </div>
+
+    <div class="form-panel" style="max-width: 800px; margin: 0 auto; background: rgba(10,15,30,0.5); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Event Title *</label>
+                <input type="text" name="title" required value="{{ event.title }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-bottom: 1.5rem;">
+                <div class="form-group" style="flex:1;">
+                    <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Date *</label>
+                    <input type="date" name="date" required value="{{ event.date if event.date else (event.event_datetime.strftime('%Y-%m-%d') if event.event_datetime else '') }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Time *</label>
+                    <input type="time" name="time" required value="{{ event.time if event.time else (event.event_datetime.strftime('%H:%M') if event.event_datetime else '') }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Location *</label>
+                <input type="text" name="location" required value="{{ event.location }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Registration Link (Optional)</label>
+                <input type="url" name="registration_link" value="{{ event.registration_link }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom: 1.5rem;">
+                <div class="form-group" style="flex:1;">
+                    <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Max Capacity</label>
+                    <input type="number" name="max_capacity" value="{{ event.max_capacity }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Waitlist Capacity</label>
+                    <input type="number" name="waitlist_capacity" value="{{ event.waitlist_capacity }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Is this a PAID event? *</label>
+                <select name="is_paid" required style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+                    <option value="no" {% if event.is_paid == 'no' or not event.is_paid %}selected{% endif %}>No - Free</option>
+                    <option value="yes" {% if event.is_paid == 'yes' or event.is_paid == True %}selected{% endif %}>Yes - Paid</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Fees Details (If Paid)</label>
+                <input type="text" name="fees_details" value="{{ event.fees_details }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Payment Instructions/UPI ID</label>
+                <input type="text" name="payment_details" value="{{ event.payment_details }}" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Require Payment Screenshot?</label>
+                <select name="require_payment_screenshot" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+                    <option value="yes" {% if event.require_payment_screenshot == 'yes' %}selected{% endif %}>Yes</option>
+                    <option value="no" {% if event.require_payment_screenshot == 'no' %}selected{% endif %}>No</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Update Banner/Poster (Optional)</label>
+                <input type="file" name="banner" accept="image/jpeg, image/png, image/webp" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+                {% if event.banner_data %}
+                  <p style="font-size: 0.8rem; color:var(--text-muted); margin-top:0.5rem;">A banner is currently uploaded.</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Description *</label>
+                <textarea name="description" rows="5" required style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">{{ event.description }}</textarea>
+            </div>
+            
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 8px;">Save Changes</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

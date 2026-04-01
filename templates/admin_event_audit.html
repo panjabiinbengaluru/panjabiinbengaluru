@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Event Audit Log | Admin Portal{% endblock %}
+
+{% block content %}
+<div class="admin-container fade-up visible">
+    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+        <div>
+            <h2 class="section-title" style="font-size: 2rem; margin-bottom: 0.5rem;">Audit Log: <span>{{ event.title }}</span></h2>
+            <p style="color:var(--text-muted);">Current Status: <strong style="color:var(--gold);">{{ event.status | replace('_', ' ') | title }}</strong></p>
+        </div>
+        <a href="{{ url_for('admin_events') }}" class="btn-secondary" style="padding: 10px;">← Back to Events</a>
+    </div>
+
+    <div class="form-panel" style="max-width: 800px; margin: 0 auto; background: rgba(10,15,30,0.5); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+        {% if event.audit_log %}
+            <div style="position: relative; padding-left: 20px; border-left: 2px solid var(--border);">
+                {% for log in event.audit_log | sort(attribute='timestamp', reverse=True) %}
+                <div style="margin-bottom: 1.5rem; position: relative;">
+                    <!-- Timeline dot -->
+                    <div style="position: absolute; left: -26px; top: 0; width: 10px; height: 10px; background: var(--gold); border-radius: 50%;"></div>
+                    
+                    <strong style="color: var(--white); font-size: 1.1rem; display: block; margin-bottom: 0.2rem;">
+                        {{ log.action | replace('_', ' ') | title }}
+                    </strong>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">
+                        By Admin: <strong style="color: var(--gold);">{{ log.admin_email }}</strong>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">
+                        {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if log.timestamp else 'Unknown Time' }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center;">No audit history available for this event.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

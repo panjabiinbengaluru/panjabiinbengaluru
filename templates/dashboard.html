@@ -57,25 +57,83 @@
         </div>
 
         <div class="dashboard-card event-calendar">
-            <h3>Event Calendar</h3>
+            <h3>Live Event Calendar</h3>
             <p style="color:var(--text-muted); margin-bottom: 1rem;">Register for upcoming gatherings.</p>
             <ul>
-                <li>
-                    <div>
-                        <strong style="color:var(--white);">Startup Networking Mixer</strong>
-                        <p style="color:var(--text-muted); font-size:0.9rem;">Date: 15th April 2026 | Koramangala</p>
-                    </div>
-                    <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem;">Register</button>
-                </li>
-                <li>
-                    <div>
-                        <strong style="color:var(--white);">Baisakhi Cultural Night</strong>
-                        <p style="color:var(--text-muted); font-size:0.9rem;">Date: 28th April 2026 | Indiranagar</p>
-                    </div>
-                    <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem;">Register</button>
-                </li>
+                {% if live_events %}
+                    {% for event in live_events %}
+                    <li>
+                        <div>
+                            <strong style="color:var(--white);">{{ event.title }}</strong>
+                            <p style="color:var(--text-muted); font-size:0.9rem;">
+                                Date: {{ event.date_str }} | Time: {{ event.time_str }} | {{ event.location }}
+                            </p>
+                            {% if event.is_paid == 'yes' %}
+                                <span style="font-size:0.75rem; color:var(--gold); border: 1px solid var(--gold); padding: 2px 5px; border-radius: 4px;">Paid: {{ event.fees_details }}</span>
+                            {% else %}
+                                <span style="font-size:0.75rem; color: #4ade80; border: 1px solid #4ade80; padding: 2px 5px; border-radius: 4px;">Free</span>
+                            {% endif %}
+                            
+                            {% if event.user_registration %}
+                                <div style="margin-top:5px; font-size: 0.8rem;">
+                                    Status: 
+                                    {% if event.user_registration.status == 'approved' %}
+                                        <span style="color: #4ade80;">Approved</span>
+                                    {% elif event.user_registration.status == 'waitlisted' %}
+                                        <span style="color: #fbbf24;">Waitlisted</span>
+                                    {% elif event.user_registration.status == 'rejected' %}
+                                        <span style="color: #ef4444;">Rejected</span>
+                                    {% elif event.user_registration.status == 'cancelled' %}
+                                        <span style="color: #9ca3af;">Cancelled</span>
+                                    {% else %}
+                                        <span style="color: #60a5fa;">Pending Review</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if not event.user_registration or event.user_registration.status == 'cancelled' or event.user_registration.status == 'rejected' %}
+                            <a href="{{ url_for('event_details', event_id=event._id) }}" class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem; text-decoration: none;">View Details / Register</a>
+                        {% else %}
+                            <div style="display:flex; gap:10px;">
+                                <a href="{{ url_for('event_details', event_id=event._id) }}" class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem; text-decoration: none;">View Details</a>
+                            </div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li><p style="color:var(--text-muted);">No live events available currently.</p></li>
+                {% endif %}
+            </ul>
+
+            <h3 style="margin-top: 2rem;">Past Events</h3>
+            <ul>
+                {% if past_events %}
+                    {% for event in past_events %}
+                    <li style="opacity: 0.7; align-items: flex-start;">
+                        <div>
+                            <strong style="color:var(--white);">{{ event.title }}</strong>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-top: 5px;">
+                                Date: {{ event.date_str }} | {{ event.location }}
+                            </p>
+                        </div>
+                        <div style="text-align: right;">
+                            {% if event.user_registration and event.user_registration.checked_in %}
+                                <span style="font-size: 0.75rem; color: #10b981; border: 1px solid #10b981; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;">✓ Attended</span><br>
+                            {% elif event.user_registration and event.user_registration.status == 'approved' %}
+                                <span style="font-size: 0.75rem; color: #ef4444; border: 1px solid #ef4444; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;">Missed</span><br>
+                            {% endif %}
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">Completed</span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li><p style="color:var(--text-muted);">No past events.</p></li>
+                {% endif %}
             </ul>
         </div>
     </div>
 </div>
+
+
 {% endblock %}

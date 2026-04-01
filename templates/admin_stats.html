@@ -49,6 +49,7 @@
                     <th>Logged In</th>
                     <th>Reset Password</th>
                     <th>Joined WA</th>
+                    <th>Events Attended</th>
                 </tr>
             </thead>
             <tbody>
@@ -63,7 +64,7 @@
                     </td>
                     <td>
                         <div class="profile-info">
-                            <strong>{{ member.approved_by_name or 'System/Unknown' }}</strong>
+                            <strong>{{ member.approved_by_name }}</strong>
                             <span>{{ member.approved_by_email or '-' }}</span>
                         </div>
                     </td>
@@ -94,6 +95,11 @@
                         {% else %}
                             <span class="status-badge status-no">No / Link Unused</span>
                         {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="status-badge" style="background: rgba(200,168,75,0.2); color: var(--gold); border: 1px solid var(--gold);">
+                            {{ member.attended_events|length if member.attended_events else 0 }}
+                        </span>
                     </td>
                 </tr>
                 {% endfor %}

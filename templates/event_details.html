@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }} | Panjabi in Bengaluru{% endblock %}
+
+{% block extra_css %}
+<style>
+    .event-container { max-width: 800px; margin: 4rem auto; padding: 0 2rem; }
+    .event-banner { width: 100%; height: auto; max-height: 80vh; object-fit: contain; border-radius: 12px; margin-bottom: 2rem; border: 1px solid var(--border); background: #000; }
+    .event-header { margin-bottom: 2rem; }
+    .event-title { font-family: 'Space Grotesk', sans-serif; font-size: 2.5rem; color: var(--gold); margin-bottom: 0.5rem; }
+    .event-meta { color: var(--text-muted); font-size: 1.1rem; margin-bottom: 1rem; }
+    
+    .event-card { background: rgba(10,15,30,0.5); border: 1px solid var(--border); padding: 2rem; border-radius: 12px; margin-bottom: 2rem; }
+    .event-description { color: var(--white); line-height: 1.6; white-space: pre-line; margin-bottom: 2rem; }
+    
+    .status-box { padding: 1rem; border-radius: 8px; text-align: center; margin-top: 2rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); }
+    .status-approved { border-color: #4ade80; color: #4ade80; }
+    .status-pending { border-color: #60a5fa; color: #60a5fa; }
+    .status-waitlisted { border-color: #fbbf24; color: #fbbf24; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="event-container fade-up visible">
+    <a href="{{ url_for('dashboard') }}" style="color:var(--gold); text-decoration:none; display:inline-block; margin-bottom:1rem;">← Back to Dashboard</a>
+    
+    {% if event.banner %}
+    <img src="{{ event.banner }}" class="event-banner" alt="{{ event.title }}">
+    {% endif %}
+
+    <div class="event-header">
+        <h1 class="event-title">{{ event.title }}</h1>
+        <div class="event-meta">
+            <p>📅 {{ event.date_str }} at {{ event.time_str }}</p>
+            <p>📍 {{ event.location }}</p>
+            {% if event.is_paid == 'yes' %}
+            <p>💰 {{ event.fees_details }}</p>
+            {% else %}
+            <p>🎟️ Free Event</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="event-card">
+        <h3>About this Event</h3>
+        <div class="event-description">{{ event.description }}</div>
+        
+        {% if event.registration_link %}
+            <div style="margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--gold); border-radius: 8px; background: rgba(200,168,75,0.05);">
+                <h4 style="color:var(--gold); margin-bottom: 0.5rem;">🔗 External Registration Required</h4>
+                <p style="margin-bottom: 0.5rem; color:var(--white);">To get counted for this event, you <strong>MUST</strong> also register via the external link below:</p>
+                <a href="{{ event.registration_link }}" target="_blank" style="color:var(--gold); font-weight:bold; font-size:1.1rem; text-decoration:underline;">Click Here to Register Externally</a>
+                <p style="margin-top: 0.5rem; font-size:0.85rem; color:#ef4444;"><strong>Warning:</strong> If you do not register at the link above, your entry will be null and void even if approved here.</p>
+            </div>
+        {% endif %}
+
+        {% if event.is_paid == 'yes' %}
+            <h4 style="color:var(--gold); margin-bottom: 0.5rem;">Payment Instructions</h4>
+            <div style="background: rgba(200,168,75,0.05); padding: 1rem; border-radius: 8px; border: 1px dashed var(--gold); margin-bottom: 2rem;">
+                {{ event.payment_details }}
+            </div>
+        {% endif %}
+
+        {% if user_reg %}
+            <div class="status-box status-{{ user_reg.status }}" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom:0.5rem;">Your Registration Status</h3>
+                <p style="font-size:1.2rem; font-weight:bold; text-transform:uppercase;">{{ user_reg.status }}</p>
+                {% if user_reg.status == 'approved' %}
+                    <p style="font-size:0.9rem; margin-top:0.5rem; color:var(--white);">You are confirmed for this event!</p>
+                {% elif user_reg.status == 'pending' %}
+                    <p style="font-size:0.9rem; margin-top:0.5rem; color:var(--white);">Your payment/registration is being reviewed.</p>
+                {% elif user_reg.status == 'waitlisted' %}
+                    <p style="font-size:0.9rem; margin-top:0.5rem; color:var(--white);">The event is currently full. You will be notified if a spot opens up.</p>
+                {% elif user_reg.status == 'rejected' and user_reg.rejection_reason %}
+                    <p style="font-size:0.9rem; margin-top:0.5rem; color:#ef4444;">Reason: {{ user_reg.rejection_reason }}</p>
+                    <p style="font-size:0.8rem; margin-top:0.5rem; color:var(--text-muted);">You may try to register again below.</p>
+                {% elif user_reg.status == 'cancelled' %}
+                    <p style="font-size:0.8rem; margin-top:0.5rem; color:var(--text-muted);">You can re-register below if you'd like to attend.</p>
+                {% endif %}
+            </div>
+            
+            {% if user_reg.status in ['approved', 'pending'] %}
+                <form action="{{ url_for('cancel_registration', event_id=event._id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel your registration?');" style="margin-bottom: 2rem;">
+                    <button type="submit" class="btn-secondary" style="width:100%; justify-content:center; color:#ef4444; border-color:rgba(239,68,68,0.3);">Cancel Registration</button>
+                </form>
+            {% endif %}
+        {% endif %}
+
+        {% if not user_reg or user_reg.status in ['cancelled', 'rejected'] %}
+            <form action="{{ url_for('register_event', event_id=event._id) }}" method="POST" enctype="multipart/form-data">
+                {% if event.registration_link %}
+                    <div style="margin-bottom: 1.5rem; background: rgba(200,168,75,0.05); padding: 1rem; border: 1px solid var(--border); border-radius: 6px;">
+                        <label style="display:flex; align-items:flex-start; cursor:pointer; gap: 0.75rem;">
+                            <input type="checkbox" name="external_link_consent" required style="margin-top: 0.25rem; transform: scale(1.2);">
+                            <span style="color:var(--white); font-size:0.9rem; line-height: 1.4;">
+                                I confirm that I have also registered on the <a href="{{ event.registration_link }}" target="_blank" style="color:var(--gold); text-decoration: underline;">external link</a> provided above. I understand that my entry will be voided if I have not registered there, even if my application is approved.
+                            </span>
+                        </label>
+                    </div>
+                {% endif %}
+
+                {% if (event.is_paid == 'yes' or event.is_paid == True) and event.require_payment_screenshot == 'yes' %}
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display:block; margin-bottom:0.5rem; color:var(--white);">Upload Payment Screenshot *</label>
+                        <input type="file" name="payment_screenshot" required accept="image/*" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:transparent; color:white;">
+                    </div>
+                {% endif %}
+                <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:15px; font-size:1.1rem;">Register Now</button>
+            </form>
+            <p style="text-align:center; color:var(--text-muted); margin-top:1rem; font-size:0.9rem;">
+                Spots remaining: {{ spots_left if spots_left > 0 else 0 }} / {{ event.max_capacity }}
+                {% if spots_left <= 0 %}(Waitlist is open){% endif %}
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

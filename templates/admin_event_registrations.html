@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Manage Registrations | Admin Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .registrations-container { max-width: 1000px; margin: 4rem auto; padding: 0 2rem; }
+    .page-header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .page-header h1 { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; color: var(--gold); }
+    
+    .event-stats { display: flex; gap: 1rem; margin-bottom: 2rem; }
+    .stat-box { background: rgba(200,168,75,0.05); border: 1px solid rgba(200,168,75,0.2); padding: 1rem; border-radius: 8px; flex: 1; text-align: center; }
+    .stat-box span.value { display: block; font-size: 1.5rem; color: var(--white); font-weight: bold; }
+    .stat-box span.label { font-size: 0.8rem; color: var(--gold); text-transform: uppercase; }
+
+    .data-table { width: 100%; border-collapse: collapse; background: rgba(10,15,30,0.5); border-radius: 8px; overflow: hidden; }
+    .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+    .data-table th { background: rgba(255,255,255,0.02); color: var(--gold); font-weight: 600; }
+    .data-table tr:last-child td { border-bottom: none; }
+    
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; border: 1px solid; }
+    .status-approved { color: #4ade80; border-color: #4ade80; }
+    .status-pending { color: #60a5fa; border-color: #60a5fa; }
+    .status-waitlisted { color: #fbbf24; border-color: #fbbf24; }
+    .status-rejected { color: #ef4444; border-color: #ef4444; }
+    .status-cancelled { color: #9ca3af; border-color: #9ca3af; }
+    
+    .btn-action { padding: 6px 12px; font-size: 0.8rem; border: none; cursor: pointer; border-radius: 4px; font-family: 'Inter', sans-serif; margin-right: 5px; }
+    .btn-approve { background: #4ade80; color: #000; }
+    .btn-reject { background: #ef4444; color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="registrations-container fade-up visible">
+    <div class="page-header">
+        <div>
+            <h1>Registrations: {{ event.title }}</h1>
+            <p style="color:var(--text-muted);">{{ event.date_str }} | {{ event.location }}</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <a href="{{ url_for('export_event_csv', event_id=event._id) }}" class="btn-primary" style="padding: 10px;">Export CSV</a>
+            <a href="{{ url_for('admin_events') }}" class="btn-secondary" style="padding: 10px;">Back to Events</a>
+        </div>
+    </div>
+    
+    <div class="event-stats">
+        <div class="stat-box">
+            <span class="value">{{ event.registered_count }} / {{ event.max_capacity }}</span>
+            <span class="label">Total Approved</span>
+        </div>
+        <div class="stat-box">
+            <span class="value">
+                {{ registrations|selectattr('status', 'equalto', 'pending')|list|length }}
+            </span>
+            <span class="label">Pending Verification</span>
+        </div>
+        <div class="stat-box">
+            <span class="value">
+                {{ registrations|selectattr('status', 'equalto', 'waitlisted')|list|length }} / {{ event.waitlist_capacity }}
+            </span>
+            <span class="label">Waitlisted</span>
+        </div>
+    </div>
+    
+    <div style="margin-bottom: 1rem;">
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search by name, email, or phone..." style="padding: 0.8rem; width: 100%; border-radius: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--white); font-family: 'Inter', sans-serif;">
+    </div>
+
+    <table class="data-table" id="registrationsTable">
+        <thead>
+            <tr>
+                <th>Member Details</th>
+                <th>Timestamp</th>
+                <th>Status</th>
+                <th>Payment Screenshot</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reg in registrations|sort(attribute='timestamp') %}
+            <tr>
+                <td>
+                    <strong style="color:var(--white);">{{ reg.name }}</strong><br>
+                    <small>{{ reg.email }}</small><br>
+                    <small>{{ reg.phone }}</small>
+                </td>
+                <td>{{ reg.timestamp.strftime('%Y-%m-%d %H:%M') if reg.timestamp else 'N/A' }}</td>
+                <td>
+                    <span class="status-badge status-{{ reg.status }}">{{ reg.status|title }}</span>
+                    {% if reg.checked_in %}
+                        <div style="font-size: 0.8rem; color: #4ade80; margin-top: 5px; font-weight: bold;">✓ Checked In</div>
+                    {% endif %}
+                    {% if reg.status == 'rejected' and reg.rejection_reason %}
+                        <div style="font-size: 0.8rem; color: #ef4444; margin-top: 5px;">Reason: {{ reg.rejection_reason }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if reg.payment_screenshot %}
+                        <a href="{{ reg.payment_screenshot }}" target="_blank" style="color:var(--gold); text-decoration: underline; font-size: 0.9rem;">View Image</a>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if reg.status == 'pending' %}
+                    <form method="POST" style="display:inline-block; margin:0;" onsubmit="return confirm('Approve registration?');">
+                        <input type="hidden" name="action" value="approve">
+                        <input type="hidden" name="reg_id" value="{{ reg.id }}">
+                        <button type="submit" class="btn-action btn-approve">Approve</button>
+                    </form>
+                    {% endif %}
+                    
+                    {% if reg.status == 'approved' and not reg.checked_in %}
+                    <form method="POST" style="display:inline-block; margin:0;">
+                        <input type="hidden" name="action" value="check_in">
+                        <input type="hidden" name="reg_id" value="{{ reg.id }}">
+                        <button type="submit" class="btn-action" style="background:#10b981; color:#fff;">Check In</button>
+                    </form>
+                    {% endif %}
+                    
+                    {% if reg.status in ['pending', 'approved', 'waitlisted'] %}
+                    <button type="button" class="btn-action btn-reject" onclick="openRejectModal('{{ reg.id }}')">Reject</button>
+                    {% endif %}
+
+                    {% if reg.status == 'rejected' %}
+                    <button type="button" class="btn-action" style="background:#fbbf24; color:#000;" onclick="openResetModal('{{ reg.id }}')">Reset Flow</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align:center;">No registrations yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:var(--bg-dark); padding:2rem; border-radius:12px; border:1px solid var(--border); width:400px; max-width:90%;">
+        <h3 style="color:var(--gold); margin-bottom:1rem;">Reject Registration</h3>
+        <form method="POST" id="rejectForm">
+            <input type="hidden" name="action" value="reject">
+            <input type="hidden" name="reg_id" id="rejectRegId">
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label style="color:var(--white); display:block; margin-bottom:0.5rem;">Reason for Rejection *</label>
+                <select name="reject_reason" id="rejectReasonSelect" required onchange="toggleOtherReason()" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">
+                    <option value="">Select a reason...</option>
+                    <option value="Payment Issues">Payment Issues</option>
+                    <option value="False Payment Claims">False Payment Claims</option>
+                    <option value="Prior Misconduct">Prior Misconduct</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group" id="otherReasonDiv" style="display:none; margin-bottom: 1rem;">
+                <label style="color:var(--white); display:block; margin-bottom:0.5rem;">Specify Details *</label>
+                <textarea name="other_reject_reason" id="otherReasonInput" rows="3" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;"></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button type="submit" class="btn-primary" style="background:#ef4444; border-color:#ef4444; color:#fff;">Confirm Rejection</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reset Flow Modal -->
+<div id="resetModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:var(--bg-dark); padding:2rem; border-radius:12px; border:1px solid var(--border); width:400px; max-width:90%;">
+        <h3 style="color:var(--gold); margin-bottom:1rem;">Reset Registration Flow</h3>
+        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">This will permanently delete this rejected entry, allowing the user to seamlessly submit a new application.</p>
+        <form method="POST" id="resetForm">
+            <input type="hidden" name="action" value="reset">
+            <input type="hidden" name="reg_id" id="resetRegId">
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label style="color:var(--white); display:block; margin-bottom:0.5rem;">Reason for Reset *</label>
+                <textarea name="reset_reason" required rows="3" placeholder="e.g. Member accidentally uploaded wrong image" style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;"></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn-secondary" onclick="closeResetModal()">Cancel</button>
+                <button type="submit" class="btn-primary" style="background:#fbbf24; border-color:#fbbf24; color:#000;">Reset Flow</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function filterTable() {
+    var input, filter, table, tr, td, i, txtValue;
+    input = document.getElementById("searchInput");
+    filter = input.value.toLowerCase();
+    table = document.getElementById("registrationsTable");
+    tr = table.getElementsByTagName("tr");
+    for (i = 1; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[0]; // First column contains Name, Email, Phone
+        if (td) {
+            txtValue = td.textContent || td.innerText;
+            if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }       
+    }
+}
+
+function openRejectModal(regId) {
+    document.getElementById('rejectRegId').value = regId;
+    document.getElementById('rejectModal').style.display = 'flex';
+}
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+}
+function toggleOtherReason() {
+    const val = document.getElementById('rejectReasonSelect').value;
+    const div = document.getElementById('otherReasonDiv');
+    const input = document.getElementById('otherReasonInput');
+    if (val === 'Other') {
+        div.style.display = 'block';
+        input.setAttribute('required', 'true');
+    } else {
+        div.style.display = 'none';
+        input.removeAttribute('required');
+    }
+}
+
+function openResetModal(regId) {
+    document.getElementById('resetRegId').value = regId;
+    document.getElementById('resetModal').style.display = 'flex';
+}
+function closeResetModal() {
+    document.getElementById('resetModal').style.display = 'none';
+}
+</script>
+
+{% endblock %}
