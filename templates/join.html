@@ -148,6 +148,22 @@
                         <span id="phone-error" style="display:none;color:#FCA5A5;font-size:0.75rem;margin-top:6px;display:none;"><i class="fas fa-exclamation-circle" style="margin-right:4px;"></i>Enter a valid Indian mobile number (e.g. 9876543210 or +91 98765 43210)</span>
                     </div>
                 </div>
+                
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label class="form-label">Already a member of PIB Whatsapp Community? *</label>
+                        <select name="is_wa_member" id="is_wa_member" class="form-select" required>
+                            <option value="" disabled selected>Select an option</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="wa-number-group" style="display: none;">
+                        <label class="form-label">Registered WhatsApp Number *</label>
+                        <input type="tel" name="wa_number" id="wa_number" class="form-input" placeholder="e.g. +91 9876543210">
+                    </div>
+                </div>
+
                 <div class="form-divider"></div>
                 <div class="form-section-label"><i class="fas fa-briefcase"></i> Professional Details</div>
                 <div class="form-row-2">
@@ -156,8 +172,8 @@
                         <input type="text" name="profession" class="form-input" placeholder="Software Engineer, Founder, etc." required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Company / Organisation</label>
-                        <input type="text" name="company" class="form-input" placeholder="Your company name">
+                        <label class="form-label">Company / Organisation *</label>
+                        <input type="text" name="company" class="form-input" placeholder="Your company name" required>
                     </div>
                 </div>
                 <div class="form-row-2">
@@ -311,6 +327,23 @@
             input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
+
+    // Toggle WhatsApp Number field visibility based on community membership
+    const waSelect = document.getElementById('is_wa_member');
+    const waNumberGroup = document.getElementById('wa-number-group');
+    const waNumberInput = document.getElementById('wa_number');
+
+    waSelect.addEventListener('change', function() {
+        if (this.value === 'yes') {
+            waNumberGroup.style.display = 'block';
+            waNumberInput.setAttribute('required', 'required');
+        } else {
+            waNumberGroup.style.display = 'none';
+            waNumberInput.removeAttribute('required');
+            waNumberInput.value = ''; // clear on hide
+        }
+    });
+
 })();
 </script>
 {% endblock %}

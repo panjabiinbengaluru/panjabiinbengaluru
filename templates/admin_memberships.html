@@ -109,6 +109,14 @@
                         {% if app.is_entrepreneur %}<span style="font-size: 0.70rem; padding: 2px 6px; border-radius: 4px; background: rgba(59,130,246,0.2); color:#3b82f6; border: 1px solid rgba(59,130,246,0.3); display:inline-block; text-align:center;">Entrepreneur</span>{% endif %}
                         {% if app.is_investor %}<span style="font-size: 0.70rem; padding: 2px 6px; border-radius: 4px; background: rgba(245,158,11,0.2); color:#f59e0b; border: 1px solid rgba(245,158,11,0.3); display:inline-block; text-align:center;">Investor</span>{% endif %}
                     </div>
+                    <div style="margin-top: 10px; font-size: 0.75rem;">
+                        {% if app.is_wa_member %}
+                            <span style="color: #10b981;"><i class="fab fa-whatsapp"></i> WA Member</span><br>
+                            <span style="color: var(--text-muted);">{{ app.wa_number }}</span>
+                        {% else %}
+                            <span style="color: #ef4444;"><i class="fab fa-whatsapp"></i> Not in WA</span>
+                        {% endif %}
+                    </div>
                 </td>
                 <td style="max-width: 300px;">
                     {% if app.profile_overview %}
@@ -123,7 +131,7 @@
                     <div class="actions">
                         <form method="POST" action="{{ url_for('process_membership', app_id=app._id, action='approve') }}" class="form-row">
                             <label style="font-size: 0.7rem; color: #6EE7B7; display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
-                                <input type="checkbox" name="send_wa_invite" checked> Send automated WA invite
+                                <input type="checkbox" name="send_wa_invite" {% if not app.is_wa_member %}checked{% endif %}> Send automated WA invite
                             </label>
                             <button class="btn-approve" title="Approve & Send Welcome Email"><i class="fas fa-check"></i> Approve + Email</button>
                         </form>

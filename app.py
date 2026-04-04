@@ -190,13 +190,15 @@ def join():
         is_founder = request.form.get("is_founder") == "yes"
         is_entrepreneur = request.form.get("is_entrepreneur") == "yes"
         is_investor = request.form.get("is_investor") == "yes"
+        is_wa_member = request.form.get("is_wa_member") == "yes"
+        wa_number = request.form.get("wa_number", "").strip() if is_wa_member else ""
 
         required = [
-            name, age, email, phone, profession, area, source, reason, 
+            name, age, email, phone, profession, company, area, source, reason, 
             profile_overview, linkedin_url, career_aspiration, skills
         ]
         if not all(required):
-            flash("Please fill in all mandatory fields including LinkedIn, Profile Overview, Career Aspirations, and Skills.", "error")
+            flash("Please fill in all mandatory fields including Company, LinkedIn, Profile Overview, Career Aspirations, and Skills.", "error")
             return redirect(url_for("join"))
 
         if len([s for s in skills.split(",") if s.strip()]) > 5:
@@ -237,6 +239,8 @@ def join():
             "is_founder": is_founder,
             "is_entrepreneur": is_entrepreneur,
             "is_investor": is_investor,
+            "is_wa_member": is_wa_member,
+            "wa_number": wa_number,
             "status": "pending",
             "submitted_at": datetime.now(timezone.utc),
         }
@@ -881,7 +885,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-def send_approval_email(member_name, member_email, temp_password, whatsapp_link):
+def send_approval_email(member_name, member_email, temp_password, whatsapp_link, is_wa_member=False):
     subject = "Welcome to Panjabi in Bengaluru! Your Membership is Approved 🎉"
 
     sender_email = os.environ.get("MAIL_USERNAME", "no-reply@panjabiinbengaluru.com")
@@ -915,6 +919,8 @@ Click the link below to join our official WhatsApp Community Group:
 
 Note: This is a personalized, single-use invite link generated specifically for you. It will automatically expire once you have joined the group or within 48 hours, so please be sure to hop in soon!
 """
+    elif is_wa_member:
+        body += "\nSince you're already connected with us on our WhatsApp community, you will continue to receive updates there!\n"
     else:
         body += "\n(WhatsApp invite link will be shared with you shortly by the Admin team)\n"
 
@@ -982,6 +988,8 @@ def process_membership(app_id, action):
             "is_founder": app_doc.get("is_founder", False),
             "is_entrepreneur": app_doc.get("is_entrepreneur", False),
             "is_investor": app_doc.get("is_investor", False),
+            "is_wa_member": app_doc.get("is_wa_member", False),
+            "wa_number": app_doc.get("wa_number", ""),
             "profession": app_doc.get("profession", ""),
             "company": app_doc.get("company", ""),
             "area": app_doc.get("area", ""),
@@ -1019,7 +1027,11 @@ def process_membership(app_id, action):
                 invite_url = url_for("whatsapp_invite", token=token, _external=True)
 
             email_sent = send_approval_email(
-                app_doc["name"], app_doc["email"], random_pwd, invite_url
+                app_doc["name"], 
+                app_doc["email"], 
+                random_pwd, 
+                invite_url, 
+                is_wa_member=app_doc.get("is_wa_member", False)
             )
 
             if email_sent:
