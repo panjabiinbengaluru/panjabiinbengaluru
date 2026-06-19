@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Member Communications | Admin Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-container { max-width: 1200px; margin: 4rem auto; padding: 0 2rem; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+    .back-link { color: var(--gold); text-decoration: none; font-size: 0.9rem; }
+
+    .notice-card, .form-panel { background: rgba(10,15,30,0.5); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+    .notice-card { margin-bottom: 1.5rem; }
+    .notice-card p, .help-text { color: var(--text-muted); line-height: 1.6; }
+    .kpi { display: inline-flex; align-items: center; gap: 8px; padding: 0.5rem 0.9rem; border: 1px solid rgba(200,168,75,0.35); border-radius: 999px; color: var(--gold); background: rgba(200,168,75,0.08); margin-top: 0.75rem; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .stack { display: flex; flex-direction: column; gap: 1rem; }
+    .form-title { color: var(--white); margin-bottom: 0.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.45rem; color: var(--gold); font-size: 0.9rem; }
+    .form-group input[type="text"], .form-group textarea, .form-group select { width: 100%; padding: 10px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; color: var(--white); outline: none; }
+    .form-group textarea { min-height: 140px; resize: vertical; }
+    .radio-row { display: flex; flex-wrap: wrap; gap: 1rem; }
+    .radio-pill { display: flex; align-items: center; gap: 8px; padding: 0.65rem 0.9rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.02); }
+    .radio-pill input { accent-color: var(--gold); }
+    .radio-pill span { color: var(--white); font-size: 0.9rem; }
+    .hint { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.45rem; }
+    .subtle { font-size: 0.85rem; color: var(--text-muted); }
+    .section-divider { height: 1px; background: var(--border); margin: 1rem 0; }
+    .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    @media (max-width: 900px) {
+        .grid { grid-template-columns: 1fr; }
+        .page-header { align-items: flex-start; flex-direction: column; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container fade-up visible">
+    <div class="page-header">
+        <div>
+            <h2 class="section-title" style="font-size: 2rem;">Member <span>Communications</span></h2>
+            <p class="subtle">Superadmin-only utility for welcome mail retriggers and other member email broadcasts.</p>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <div class="notice-card">
+        <p>Use <strong>@all-members</strong> to target everyone, or paste individual member emails separated by commas or new lines. For general broadcasts, the body supports <strong>{name}</strong> and <strong>{email}</strong> placeholders.</p>
+        <div class="kpi"><i class="fas fa-users"></i> Total Members: {{ member_count }}</div>
+    </div>
+
+    <div class="grid">
+        <div class="form-panel">
+            <h3 class="form-title"><i class="fas fa-paper-plane" style="color:var(--gold); margin-right: 8px;"></i> Retrigger Welcome Mail</h3>
+            <p class="help-text">Choose whether to use the member's current login details or issue fresh credentials. You can also reuse the latest active WhatsApp invite or create a new one.</p>
+            <div class="section-divider"></div>
+
+            <form method="POST">
+                <input type="hidden" name="action" value="welcome">
+
+                <div class="form-group">
+                    <label>Target Members</label>
+                    <textarea name="targets" placeholder="@all-members or name1@domain.com, name2@domain.com" required></textarea>
+                    <div class="hint">Use @all-members for the full member base.</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Login Details Mode</label>
+                    <div class="radio-row">
+                        <label class="radio-pill">
+                            <input type="radio" name="login_mode" value="existing" checked>
+                            <span>Existing login details</span>
+                        </label>
+                        <label class="radio-pill">
+                            <input type="radio" name="login_mode" value="new">
+                            <span>New login details</span>
+                        </label>
+                    </div>
+                    <div class="hint">Existing keeps the member account untouched. New resets the password and first-login flow.</div>
+                </div>
+
+                <div class="form-group">
+                    <label>WhatsApp Invite Mode</label>
+                    <div class="radio-row">
+                        <label class="radio-pill">
+                            <input type="radio" name="whatsapp_mode" value="existing" checked>
+                            <span>Existing invite</span>
+                        </label>
+                        <label class="radio-pill">
+                            <input type="radio" name="whatsapp_mode" value="new">
+                            <span>New invite</span>
+                        </label>
+                    </div>
+                    <div class="hint">Existing reuses the latest active 3-use invite if one exists. New creates a fresh invite link.</div>
+                </div>
+
+                <div class="actions">
+                    <button type="submit" class="btn-primary" style="padding: 10px 20px;">Send Welcome Mail</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="form-panel">
+            <h3 class="form-title"><i class="fas fa-bullhorn" style="color:var(--gold); margin-right: 8px;"></i> Member Communication Email</h3>
+            <p class="help-text">Send any update from the admin portal itself. This is useful for announcements, reminders, and membership-related messages.</p>
+            <div class="section-divider"></div>
+
+            <form method="POST">
+                <input type="hidden" name="action" value="broadcast">
+
+                <div class="form-group">
+                    <label>Target Members</label>
+                    <textarea name="targets" placeholder="@all-members or name1@domain.com, name2@domain.com" required></textarea>
+                    <div class="hint">Use @all-members for a broadcast to everyone, or paste the required email addresses.</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" name="subject" placeholder="Important update for members" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Message Body</label>
+                    <textarea name="message_body" placeholder="Hello {name},\n\nWrite your communication here..." required></textarea>
+                    <div class="hint">Placeholders supported: {name} and {email}.</div>
+                </div>
+
+                <div class="actions">
+                    <button type="submit" class="btn-primary" style="padding: 10px 20px;">Send Communication</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -59,6 +59,18 @@
             <p>Create new admin accounts and assign their specific portal permissions.</p>
             <a href="{{ url_for('manage_admins') }}" class="btn-primary" style="padding: 10px 20px;">Manage Admins</a>
         </div>
+
+        <div class="module-card">
+            <h3><i class="fas fa-envelope-open-text" style="color:var(--gold); margin-right: 10px;"></i> Member Communications</h3>
+            <p>Retrigger welcome mail with existing or fresh login details, resend WhatsApp invites, or send other member updates.</p>
+            <a href="{{ url_for('admin_communications') }}" class="btn-primary" style="padding: 10px 20px;">Open Utilities</a>
+        </div>
+
+        <div class="module-card">
+            <h3><i class="fas fa-user-cog" style="color:var(--gold); margin-right: 10px;"></i> Member Controls</h3>
+            <p>Reset passwords, pause member access for a fixed time frame, or soft-delete member accounts from one place.</p>
+            <a href="{{ url_for('admin_member_controls') }}" class="btn-primary" style="padding: 10px 20px;">Open Controls</a>
+        </div>
         {% endif %}
         
         <div class="module-card">

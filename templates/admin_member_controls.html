@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Member Controls | Admin Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-container { max-width: 1200px; margin: 4rem auto; padding: 0 2rem; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+    .back-link { color: var(--gold); text-decoration: none; font-size: 0.9rem; }
+
+    .notice-card, .form-panel { background: rgba(10,15,30,0.5); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+    .notice-card { margin-bottom: 1.5rem; }
+    .notice-card p, .help-text { color: var(--text-muted); line-height: 1.6; }
+    .kpi { display: inline-flex; align-items: center; gap: 8px; padding: 0.5rem 0.9rem; border: 1px solid rgba(200,168,75,0.35); border-radius: 999px; color: var(--gold); background: rgba(200,168,75,0.08); margin-top: 0.75rem; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; }
+    .form-title { color: var(--white); margin-bottom: 0.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.45rem; color: var(--gold); font-size: 0.9rem; }
+    .form-group input[type="text"], .form-group textarea, .form-group input[type="datetime-local"] { width: 100%; padding: 10px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; color: var(--white); outline: none; }
+    .form-group textarea { min-height: 120px; resize: vertical; }
+    .hint { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.45rem; }
+    .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    @media (max-width: 1100px) {
+        .grid { grid-template-columns: 1fr; }
+        .page-header { align-items: flex-start; flex-direction: column; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container fade-up visible">
+    <div class="page-header">
+        <div>
+            <h2 class="section-title" style="font-size: 2rem;">Member <span>Controls</span></h2>
+            <p class="help-text">Superadmin-only controls for password resets, temporary pauses, and soft deletion.</p>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <div class="notice-card">
+        <p>Use <strong>@all-members</strong> for a full-member action or paste individual member emails separated by commas or new lines. Password resets send a new temporary password by email. Pause uses UTC time.</p>
+        <div class="kpi"><i class="fas fa-users"></i> Active Members: {{ member_count }}</div>
+    </div>
+
+    <div class="grid">
+        <div class="form-panel">
+            <h3 class="form-title"><i class="fas fa-key" style="color:var(--gold); margin-right: 8px;"></i> Reset Password</h3>
+            <p class="help-text">Generates a new temporary password, reactivates the account if needed, and sends the login details by email.</p>
+            <form method="POST">
+                <input type="hidden" name="action" value="reset_password">
+                <div class="form-group">
+                    <label>Target Members</label>
+                    <textarea name="targets" placeholder="@all-members or user1@domain.com, user2@domain.com" required></textarea>
+                    <div class="hint">Use @all-members or the exact member emails.</div>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn-primary" style="padding: 10px 20px;">Reset Passwords</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="form-panel">
+            <h3 class="form-title"><i class="fas fa-pause-circle" style="color:var(--gold); margin-right: 8px;"></i> Pause User</h3>
+            <p class="help-text">Temporarily blocks member login until the selected UTC timestamp. The account auto-reactivates after expiry.</p>
+            <form method="POST">
+                <input type="hidden" name="action" value="pause_user">
+                <div class="form-group">
+                    <label>Target Members</label>
+                    <textarea name="targets" placeholder="@all-members or user1@domain.com, user2@domain.com" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Pause Until (UTC)</label>
+                    <input type="datetime-local" name="pause_until" required>
+                    <div class="hint">The account stays blocked until this timestamp.</div>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <textarea name="pause_reason" placeholder="Optional reason for the pause"></textarea>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn-primary" style="padding: 10px 20px;">Pause Accounts</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="form-panel">
+            <h3 class="form-title"><i class="fas fa-user-times" style="color:var(--gold); margin-right: 8px;"></i> Soft Delete User</h3>
+            <p class="help-text">Marks the account deleted and blocks login without removing historical records from MongoDB.</p>
+            <form method="POST">
+                <input type="hidden" name="action" value="delete_user">
+                <div class="form-group">
+                    <label>Target Members</label>
+                    <textarea name="targets" placeholder="@all-members or user1@domain.com, user2@domain.com" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <textarea name="delete_reason" placeholder="Optional reason for deletion"></textarea>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn-primary" style="padding: 10px 20px;">Delete Accounts</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

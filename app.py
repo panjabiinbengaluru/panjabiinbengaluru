@@ -95,13 +95,58 @@ TEAM_MEMBERS = [
 WHATSAPP_INVITE_MAX_USES = int(os.environ.get("WHATSAPP_INVITE_MAX_USES", 3))
 
 
+def generate_temp_password(length=10):
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+
+def get_member_access_issue(member, db=None):
+    if not member:
+        return "Member account not found."
+
+    if member.get("account_status") == "deleted":
+        return "This account has been deleted by the admin team."
+
+    now = datetime.now(timezone.utc)
+    paused_until = member.get("paused_until")
+
+    if paused_until and paused_until > now:
+        paused_text = paused_until.strftime("%d %b %Y, %I:%M %p UTC")
+        return f"This account is paused until {paused_text}. Please try again later."
+
+    if paused_until and paused_until <= now:
+        if db:
+            db["members"].update_one(
+                {"_id": member["_id"]},
+                {
+                    "$set": {"account_status": "active"},
+                    "$unset": {"paused_until": "", "paused_reason": ""},
+                },
+            )
+        return None
+
+    if member.get("account_status") == "paused":
+        return "This account is temporarily paused by the admin team."
+
+    return None
+
+
 # ── Auth Decorator ───────────────────────────────────────────────────────────
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "member_email" not in session:
+        member_email = session.get("member_email")
+        if not member_email:
             flash("Please log in to access the dashboard.", "error")
             return redirect(url_for("login"))
+
+        db = get_db()
+        member = db["members"].find_one({"email": member_email})
+        access_issue = get_member_access_issue(member, db=db)
+        if access_issue:
+            session.clear()
+            flash(access_issue, "error")
+            return redirect(url_for("login"))
+
         return f(*args, **kwargs)
 
     return decorated_function
@@ -250,7 +295,25 @@ def join():
 
         try:
             db = get_db()
-            db["applications"].insert_one(application)
+            match_query = {
+                "$or": [
+                    {"email": email},
+                    {"phone": phone},
+                ]
+            }
+            if wa_number:
+                match_query["$or"].append({"wa_number": wa_number})
+
+            existing_application = db["applications"].find_one(match_query)
+
+            if existing_application:
+                db["applications"].update_one(
+                    {"_id": existing_application["_id"]},
+                    {"$set": application},
+                )
+            else:
+                db["applications"].insert_one(application)
+
             flash(
                 f"Welcome to the family, {name}! 🎉 "
                 f"We'll reach out to you at {email} or WhatsApp at {phone} with next steps.",
@@ -281,6 +344,11 @@ def login():
         member = db["members"].find_one({"email": email})
 
         if member and check_password_hash(member.get("password_hash", ""), password):
+            access_issue = get_member_access_issue(member, db=db)
+            if access_issue:
+                flash(access_issue, "error")
+                return render_template("login.html")
+
             # Track login to update member stats
             db["members"].update_one(
                 {"email": email}, {"$set": {"has_logged_in": True}}
@@ -379,7 +447,7 @@ def profile():
 def public_profile(username):
     db = get_db()
     member = db["members"].find_one({"username": username})
-    if not member:
+    if not member or member.get("account_status") == "deleted":
         flash("Profile not found.", "error")
         return redirect(url_for('home'))
         
@@ -819,7 +887,9 @@ def admin_dashboard():
 
     # Counts for dashboard
     pending_apps = db["applications"].count_documents({"status": "pending"})
-    total_members = db["members"].count_documents({})
+    total_members = db["members"].count_documents(
+        {"$or": [{"account_status": {"$exists": False}}, {"account_status": "active"}]}
+    )
 
     return render_template(
         "admin_dashboard.html",
@@ -827,6 +897,326 @@ def admin_dashboard():
         roles=roles,
         pending_apps=pending_apps,
         total_members=total_members,
+    )
+
+
+@app.route("/admin-portal/communications/", methods=["GET", "POST"])
+@admin_required
+@role_required("all_access")
+def admin_communications():
+    db = get_db()
+
+    if request.method == "POST":
+        action = request.form.get("action", "").strip()
+        raw_targets = request.form.get("targets", "").strip()
+
+        members, missing_targets = resolve_member_targets(db, raw_targets)
+        if missing_targets:
+            flash(
+                "Some emails were not found and were skipped: " + ", ".join(missing_targets),
+                "error",
+            )
+
+        if not members:
+            flash("Please add at least one valid member email or @all-members.", "error")
+            return redirect(url_for("admin_communications"))
+
+        if action == "welcome":
+            login_mode = request.form.get("login_mode", "existing").strip()
+            whatsapp_mode = request.form.get("whatsapp_mode", "existing").strip()
+
+            success_count = 0
+            failure_count = 0
+
+            for member in members:
+                try:
+                    temp_password = None
+                    if login_mode == "new":
+                        temp_password = "".join(
+                            random.choices(string.ascii_letters + string.digits, k=10)
+                        )
+                        db["members"].update_one(
+                            {"_id": member["_id"]},
+                            {
+                                "$set": {
+                                    "password_hash": generate_password_hash(temp_password),
+                                    "is_first_login": True,
+                                    "has_logged_in": False,
+                                    "has_changed_password": False,
+                                    "invite_expires_at": datetime.now(timezone.utc)
+                                    + timedelta(hours=48),
+                                }
+                            },
+                        )
+
+                    whatsapp_link = None
+                    if whatsapp_mode == "new":
+                        whatsapp_link = create_whatsapp_invite(db, member["email"])
+                    elif whatsapp_mode == "existing":
+                        whatsapp_link = get_active_whatsapp_invite_url(db, member["email"])
+
+                    sent = send_welcome_email(
+                        member.get("name", "Member"),
+                        member["email"],
+                        temp_password=temp_password,
+                        whatsapp_link=whatsapp_link,
+                        is_wa_member=member.get("is_wa_member", False),
+                        login_mode=login_mode,
+                    )
+
+                    if sent:
+                        success_count += 1
+                    else:
+                        failure_count += 1
+                except Exception as e:
+                    app.logger.error(f"Failed to send welcome mail to {member.get('email')}: {e}")
+                    failure_count += 1
+
+            db["admin_communications_log"].insert_one(
+                {
+                    "type": "welcome_retrigger",
+                    "admin_email": session.get("admin_email"),
+                    "admin_name": session.get("admin_name"),
+                    "target_mode": "all-members"
+                    if raw_targets.strip() == "@all-members"
+                    else "selected-members",
+                    "targets": [member["email"] for member in members],
+                    "login_mode": login_mode,
+                    "whatsapp_mode": whatsapp_mode,
+                    "success_count": success_count,
+                    "failure_count": failure_count,
+                    "created_at": datetime.now(timezone.utc),
+                }
+            )
+
+            flash(
+                f"Welcome mail process completed. Sent: {success_count}, Failed: {failure_count}.",
+                "success" if failure_count == 0 else "error",
+            )
+            return redirect(url_for("admin_communications"))
+
+        if action == "broadcast":
+            subject = request.form.get("subject", "").strip()
+            message_body = request.form.get("message_body", "").strip()
+
+            if not subject or not message_body:
+                flash("Subject and message body are required for member communications.", "error")
+                return redirect(url_for("admin_communications"))
+
+            success_count = 0
+            failure_count = 0
+
+            for member in members:
+                personalized_body = message_body.replace("{name}", member.get("name", "Member")).replace(
+                    "{email}", member.get("email", "")
+                )
+                if send_email_message(member["email"], subject, personalized_body):
+                    success_count += 1
+                else:
+                    failure_count += 1
+
+            db["admin_communications_log"].insert_one(
+                {
+                    "type": "member_broadcast",
+                    "admin_email": session.get("admin_email"),
+                    "admin_name": session.get("admin_name"),
+                    "target_mode": "all-members"
+                    if raw_targets.strip() == "@all-members"
+                    else "selected-members",
+                    "targets": [member["email"] for member in members],
+                    "subject": subject,
+                    "success_count": success_count,
+                    "failure_count": failure_count,
+                    "created_at": datetime.now(timezone.utc),
+                }
+            )
+
+            flash(
+                f"Communication email completed. Sent: {success_count}, Failed: {failure_count}.",
+                "success" if failure_count == 0 else "error",
+            )
+            return redirect(url_for("admin_communications"))
+
+        flash("Unknown communication action.", "error")
+        return redirect(url_for("admin_communications"))
+
+    member_count = db["members"].count_documents(
+        {"$or": [{"account_status": {"$exists": False}}, {"account_status": "active"}]}
+    )
+    return render_template(
+        "admin_communications.html",
+        member_count=member_count,
+    )
+
+
+@app.route("/admin-portal/member-controls/", methods=["GET", "POST"])
+@admin_required
+@role_required("all_access")
+def admin_member_controls():
+    db = get_db()
+
+    if request.method == "POST":
+        action = request.form.get("action", "").strip()
+        raw_targets = request.form.get("targets", "").strip()
+        members, missing_targets = resolve_member_targets(db, raw_targets)
+
+        if missing_targets:
+            flash(
+                "Some emails were not found and were skipped: " + ", ".join(missing_targets),
+                "error",
+            )
+
+        if not members:
+            flash("Please add at least one valid member email or @all-members.", "error")
+            return redirect(url_for("admin_member_controls"))
+
+        success_count = 0
+        failure_count = 0
+        event_count = 0
+
+        if action == "reset_password":
+            for member in members:
+                try:
+                    temp_password = generate_temp_password()
+                    db["members"].update_one(
+                        {"_id": member["_id"]},
+                        {
+                            "$set": {
+                                "password_hash": generate_password_hash(temp_password),
+                                "is_first_login": True,
+                                "has_logged_in": False,
+                                "has_changed_password": False,
+                                "invite_expires_at": datetime.now(timezone.utc)
+                                + timedelta(hours=48),
+                                "account_status": "active",
+                            },
+                            "$unset": {
+                                "paused_until": "",
+                                "paused_reason": "",
+                                "deleted_at": "",
+                                "deleted_by_email": "",
+                                "deleted_by_name": "",
+                                "deleted_reason": "",
+                            },
+                        },
+                    )
+
+                    if send_member_password_reset_email(member.get("name", "Member"), member["email"], temp_password):
+                        success_count += 1
+                    else:
+                        failure_count += 1
+                except Exception as e:
+                    app.logger.error(f"Password reset failed for {member.get('email')}: {e}")
+                    failure_count += 1
+
+            event_count = len(members)
+            db["admin_member_actions_log"].insert_one(
+                {
+                    "action": "reset_password",
+                    "admin_email": session.get("admin_email"),
+                    "admin_name": session.get("admin_name"),
+                    "target_mode": "all-members"
+                    if raw_targets.strip() == "@all-members"
+                    else "selected-members",
+                    "targets": [member["email"] for member in members],
+                    "success_count": success_count,
+                    "failure_count": failure_count,
+                    "created_at": datetime.now(timezone.utc),
+                }
+            )
+            flash(
+                f"Password reset completed. Sent: {success_count}, Failed: {failure_count}.",
+                "success" if failure_count == 0 else "error",
+            )
+
+        elif action == "pause_user":
+            pause_until_raw = request.form.get("pause_until", "").strip()
+            pause_reason = request.form.get("pause_reason", "").strip()
+
+            if not pause_until_raw:
+                flash("Pause until date/time is required.", "error")
+                return redirect(url_for("admin_member_controls"))
+
+            try:
+                pause_until = datetime.strptime(pause_until_raw, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc)
+            except ValueError:
+                flash("Invalid pause until date/time format.", "error")
+                return redirect(url_for("admin_member_controls"))
+
+            for member in members:
+                try:
+                    pause_member_account(db, member, pause_until, pause_reason)
+                    success_count += 1
+                except Exception as e:
+                    app.logger.error(f"Pause failed for {member.get('email')}: {e}")
+                    failure_count += 1
+
+            event_count = len(members)
+            db["admin_member_actions_log"].insert_one(
+                {
+                    "action": "pause_user",
+                    "admin_email": session.get("admin_email"),
+                    "admin_name": session.get("admin_name"),
+                    "target_mode": "all-members"
+                    if raw_targets.strip() == "@all-members"
+                    else "selected-members",
+                    "targets": [member["email"] for member in members],
+                    "pause_until": pause_until,
+                    "pause_reason": pause_reason,
+                    "success_count": success_count,
+                    "failure_count": failure_count,
+                    "created_at": datetime.now(timezone.utc),
+                }
+            )
+            flash(
+                f"Pause applied to {success_count} member(s).",
+                "success" if failure_count == 0 else "error",
+            )
+
+        elif action == "delete_user":
+            delete_reason = request.form.get("delete_reason", "").strip()
+
+            for member in members:
+                try:
+                    delete_member_account(db, member, delete_reason)
+                    success_count += 1
+                except Exception as e:
+                    app.logger.error(f"Delete failed for {member.get('email')}: {e}")
+                    failure_count += 1
+
+            event_count = len(members)
+            db["admin_member_actions_log"].insert_one(
+                {
+                    "action": "delete_user",
+                    "admin_email": session.get("admin_email"),
+                    "admin_name": session.get("admin_name"),
+                    "target_mode": "all-members"
+                    if raw_targets.strip() == "@all-members"
+                    else "selected-members",
+                    "targets": [member["email"] for member in members],
+                    "delete_reason": delete_reason,
+                    "success_count": success_count,
+                    "failure_count": failure_count,
+                    "created_at": datetime.now(timezone.utc),
+                }
+            )
+            flash(
+                f"Delete process completed. Soft-deleted: {success_count}, Failed: {failure_count}.",
+                "success" if failure_count == 0 else "error",
+            )
+
+        else:
+            flash("Unknown member control action.", "error")
+            return redirect(url_for("admin_member_controls"))
+
+        return redirect(url_for("admin_member_controls"))
+
+    member_count = db["members"].count_documents(
+        {"$or": [{"account_status": {"$exists": False}}, {"account_status": "active"}]}
+    )
+    return render_template(
+        "admin_member_controls.html",
+        member_count=member_count,
     )
 
 
@@ -888,13 +1278,35 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-def send_approval_email(member_name, member_email, temp_password, whatsapp_link, is_wa_member=False):
-    subject = "Welcome to Panjabi in Bengaluru! Your Membership is Approved 🎉"
-
+def send_email_message(recipient_email, subject, body):
     sender_email = os.environ.get("MAIL_USERNAME", "no-reply@panjabiinbengaluru.com")
     sender_password = os.environ.get("MAIL_PASSWORD", "")
     smtp_server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
     smtp_port = int(os.environ.get("MAIL_PORT", 587))
+
+    if not sender_password:
+        return False
+
+    msg = MIMEMultipart()
+    msg["From"] = f"Admin Team, Panjabi in Bengaluru <{sender_email}>"
+    msg["To"] = recipient_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        app.logger.error(f"Failed to send email: {e}")
+        return False
+
+
+def build_welcome_email(member_name, member_email, temp_password=None, whatsapp_link=None, is_wa_member=False, login_mode="new"):
+    subject = "Welcome to Panjabi in Bengaluru! Your Membership is Approved 🎉"
 
     body = f"""Greetings {member_name},
 
@@ -905,12 +1317,24 @@ Whether you are looking to celebrate our shared heritage, build new professional
 To get you started, here are your official access details for the community portal:
 
 Your Login Credentials
-Please use the details below to log into your new account. For your security, you will be prompted to create a new, permanent password immediately upon your first login.
+"""
+
+    if login_mode == "new" and temp_password:
+        body += f"""Please use the details below to log into your new account. For your security, you will be prompted to create a new, permanent password immediately upon your first login.
 
 Login Portal: https://www.panjabiinbengaluru.com/login
 Registered Email: {member_email}
 Password: {temp_password}
+"""
+    else:
+        body += f"""Your account remains active with your existing login details.
 
+Login Portal: https://www.panjabiinbengaluru.com/login
+Registered Email: {member_email}
+Password: Use your existing account password.
+"""
+
+    body += """
 Join the Conversation on WhatsApp
 Our community is highly active on WhatsApp, where we share real-time updates, event details, and everyday conversations.
 """
@@ -939,25 +1363,154 @@ Panjabi in Bengaluru
 https://www.panjabiinbengaluru.com
 """
 
-    if not sender_password:
-        return False  # Email not configured
+    return subject, body
 
-    msg = MIMEMultipart()
-    msg["From"] = f"Admin Team, Panjabi in Bengaluru <{sender_email}>"
-    msg["To"] = member_email
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
 
-    try:
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        app.logger.error(f"Failed to send email: {e}")
-        return False
+def send_welcome_email(member_name, member_email, temp_password=None, whatsapp_link=None, is_wa_member=False, login_mode="new"):
+    subject, body = build_welcome_email(
+        member_name,
+        member_email,
+        temp_password=temp_password,
+        whatsapp_link=whatsapp_link,
+        is_wa_member=is_wa_member,
+        login_mode=login_mode,
+    )
+    return send_email_message(member_email, subject, body)
+
+
+def send_approval_email(member_name, member_email, temp_password, whatsapp_link, is_wa_member=False):
+    return send_welcome_email(
+        member_name,
+        member_email,
+        temp_password=temp_password,
+        whatsapp_link=whatsapp_link,
+        is_wa_member=is_wa_member,
+        login_mode="new",
+    )
+
+
+def send_member_password_reset_email(member_name, member_email, temp_password):
+    subject = "Your Panjabi in Bengaluru password has been reset"
+    body = f"""Hello {member_name},
+
+An administrator has reset your password for the Panjabi in Bengaluru member portal.
+
+Login Portal: https://www.panjabiinbengaluru.com/login
+Registered Email: {member_email}
+Temporary Password: {temp_password}
+
+For security, you will be asked to change this password after you sign in.
+
+If you did not expect this change, please contact the admin team immediately.
+
+Warm regards,
+
+Admin Team,
+Panjabi in Bengaluru
+https://www.panjabiinbengaluru.com
+"""
+    return send_email_message(member_email, subject, body)
+
+
+def pause_member_account(db, member, paused_until, reason):
+    db["members"].update_one(
+        {"_id": member["_id"]},
+        {
+            "$set": {
+                "account_status": "paused",
+                "paused_until": paused_until,
+                "paused_reason": reason,
+                "paused_at": datetime.now(timezone.utc),
+            },
+            "$unset": {
+                "deleted_at": "",
+                "deleted_by_email": "",
+                "deleted_by_name": "",
+                "deleted_reason": "",
+            },
+        },
+    )
+
+
+def delete_member_account(db, member, reason):
+    db["members"].update_one(
+        {"_id": member["_id"]},
+        {
+            "$set": {
+                "account_status": "deleted",
+                "deleted_at": datetime.now(timezone.utc),
+                "deleted_by_email": session.get("admin_email"),
+                "deleted_by_name": session.get("admin_name"),
+                "deleted_reason": reason,
+            },
+            "$unset": {
+                "paused_until": "",
+                "paused_reason": "",
+            },
+        },
+    )
+
+
+def resolve_member_targets(db, raw_targets):
+    normalized = (raw_targets or "").strip()
+    if not normalized:
+        return [], []
+
+    if normalized == "@all-members":
+        return list(db["members"].find().sort("name", 1)), []
+
+    tokens = [
+        token.strip()
+        for token in re.split(r"[\s,]+", normalized)
+        if token.strip()
+    ]
+
+    if "@all-members" in tokens:
+        return list(db["members"].find().sort("name", 1)), []
+
+    members = list(db["members"].find({"email": {"$in": tokens}}))
+    found_emails = {member["email"] for member in members}
+    missing = [email for email in tokens if email not in found_emails]
+    return members, missing
+
+
+def get_active_whatsapp_invite_url(db, member_email):
+    invite = db["whatsapp_invites"].find_one(
+        {
+            "member_email": member_email,
+            "$and": [
+                {"$or": [{"used": {"$ne": True}}, {"used": {"$exists": False}}]},
+                {
+                    "$or": [
+                        {"uses_count": {"$lt": WHATSAPP_INVITE_MAX_USES}},
+                        {"uses_count": {"$exists": False}},
+                    ]
+                },
+            ],
+        },
+        sort=[("created_at", -1)],
+    )
+
+    if not invite:
+        return None
+
+    return url_for("whatsapp_invite", token=invite["token"], _external=True)
+
+
+def create_whatsapp_invite(db, member_email):
+    token = secrets.token_urlsafe(16)
+    db["whatsapp_invites"].insert_one(
+        {
+            "token": token,
+            "application_id": None,
+            "member_email": member_email,
+            "used": False,
+            "uses_count": 0,
+            "max_uses": WHATSAPP_INVITE_MAX_USES,
+            "created_at": datetime.now(timezone.utc),
+        }
+    )
+    return url_for("whatsapp_invite", token=token, _external=True)
 
 
 @app.route("/admin-portal/memberships/<app_id>/<action>", methods=["POST"])
