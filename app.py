@@ -23,6 +23,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from pymongo import MongoClient
+from pymongo import ReturnDocument
 from pymongo.errors import PyMongoError
 from bson.objectid import ObjectId
 
@@ -90,6 +91,8 @@ TEAM_MEMBERS = [
         "initials": "PS",
     },
 ]
+
+WHATSAPP_INVITE_MAX_USES = int(os.environ.get("WHATSAPP_INVITE_MAX_USES", 3))
 
 
 # ── Auth Decorator ───────────────────────────────────────────────────────────
@@ -917,7 +920,7 @@ Our community is highly active on WhatsApp, where we share real-time updates, ev
 Click the link below to join our official WhatsApp Community Group:
 👉 {whatsapp_link}
 
-Note: This is a personalized, single-use invite link generated specifically for you. It will automatically expire once you have joined the group or within 48 hours, so please be sure to hop in soon!
+Note: This is a personalized invite link generated specifically for you. It can be used up to {WHATSAPP_INVITE_MAX_USES} times before it expires, so please be sure to hop in soon!
 """
     elif is_wa_member:
         body += "\nSince you're already connected with us on our WhatsApp community, you will continue to receive updates there!\n"
@@ -1021,6 +1024,8 @@ def process_membership(app_id, action):
                         "application_id": app_id,
                         "member_email": app_doc["email"],
                         "used": False,
+                        "uses_count": 0,
+                        "max_uses": WHATSAPP_INVITE_MAX_USES,
                         "created_at": datetime.now(timezone.utc),
                     }
                 )
@@ -1622,17 +1627,56 @@ def whatsapp_invite(token):
             message="Invalid invite link. Please contact the admin.",
         )
 
-    if invite.get("used"):
+    max_uses = int(invite.get("max_uses", WHATSAPP_INVITE_MAX_USES))
+    uses_count = invite.get("uses_count")
+
+    if uses_count is None:
+        if invite.get("used"):
+            return render_template(
+                "invite_error.html",
+                message=f"This invite link has already expired after {max_uses} uses. Please contact the admin for a fresh link.",
+            )
+        uses_count = 0
+
+    if int(uses_count) >= max_uses:
         return render_template(
             "invite_error.html",
-            message="This invite link has expired. Please contact the admin.",
+            message=f"This invite link has already expired after {max_uses} uses. Please contact the admin for a fresh link.",
         )
 
-    # Mark as used immediately to make it single-use
-    db["whatsapp_invites"].update_one(
-        {"_id": invite["_id"]},
-        {"$set": {"used": True, "used_at": datetime.now(timezone.utc)}},
+    now = datetime.now(timezone.utc)
+    updated_invite = db["whatsapp_invites"].find_one_and_update(
+        {
+            "_id": invite["_id"],
+            "$and": [
+                {"$or": [{"used": {"$ne": True}}, {"used": {"$exists": False}}]},
+                {
+                    "$or": [
+                        {"uses_count": {"$lt": max_uses}},
+                        {"uses_count": {"$exists": False}},
+                    ]
+                },
+            ],
+        },
+        {
+            "$inc": {"uses_count": 1},
+            "$set": {"last_used_at": now},
+        },
+        return_document=ReturnDocument.AFTER,
     )
+
+    if not updated_invite:
+        return render_template(
+            "invite_error.html",
+            message=f"This invite link has already expired after {max_uses} uses. Please contact the admin for a fresh link.",
+        )
+
+    if int(updated_invite.get("uses_count", 0)) >= max_uses:
+        db["whatsapp_invites"].update_one(
+            {"_id": updated_invite["_id"]},
+            {"$set": {"used": True, "used_at": now, "expired_at": now}},
+        )
+
     # Also update member stats to indicate they clicked link
     db["members"].update_one(
         {"email": invite.get("member_email")}, {"$set": {"has_joined_whatsapp": True}}
