@@ -16,6 +16,11 @@
     .form-group textarea { resize: vertical; min-height: 80px; }
     .form-row { display: flex; gap: 15px; }
     .form-row .form-group { flex: 1; }
+    .audience-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 0.5rem; }
+    .audience-pill { display:flex; align-items:center; gap:8px; padding:10px 12px; background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; color:var(--white); }
+    .audience-pill input { width:auto; accent-color: var(--gold); }
+    .audience-badges { display:flex; flex-wrap:wrap; gap:6px; margin-top: 8px; }
+    .audience-badge { display:inline-block; padding:3px 8px; border-radius:999px; font-size:0.7rem; border:1px solid rgba(200,168,75,0.35); background:rgba(200,168,75,0.08); color:var(--gold); }
     
     .events-panel { display: flex; flex-direction: column; gap: 1rem; }
     .event-card { background: rgba(10,15,30,0.5); border: 1px solid var(--border); padding: 1.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
@@ -65,6 +70,18 @@
                 <div class="form-group">
                     <label>Description *</label>
                     <textarea name="description" required placeholder="What is this event about?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Publish For *</label>
+                    <div class="audience-grid">
+                        <label class="audience-pill"><input type="checkbox" name="audiences" value="bronze" checked> Bronze</label>
+                        <label class="audience-pill"><input type="checkbox" name="audiences" value="silver" checked> Silver</label>
+                        <label class="audience-pill"><input type="checkbox" name="audiences" value="gold" checked> Gold</label>
+                        <label class="audience-pill"><input type="checkbox" name="audiences" value="diamond" checked> Diamond</label>
+                        <label class="audience-pill"><input type="checkbox" name="audiences" value="all"> All Members</label>
+                        <label class="audience-pill"><input type="checkbox" name="audiences" value="public"> Public Event</label>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem;">Select one or more tiers. Public events appear on the main website and allow non-member registration.</p>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -123,6 +140,15 @@
                     <div>
                         <strong style="font-size: 1.1rem; display: block; color: var(--gold);">{{ event.title }}</strong>
                         <span style="color: var(--text-body); font-size: 0.9rem;">{{ event.date }} | {{ event.location }}</span>
+                        <div class="audience-badges">
+                            {% for audience in event.audiences or ['bronze', 'silver', 'gold', 'diamond'] %}
+                                {% if audience == 'public' %}
+                                    <span class="audience-badge">Public</span>
+                                {% else %}
+                                    <span class="audience-badge">{{ audience|capitalize }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                         <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 5px;">Hosted by: {{ event.hosted_by }}</p>
                     </div>
                     <div style="text-align: right;">

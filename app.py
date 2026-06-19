@@ -93,6 +93,7 @@ TEAM_MEMBERS = [
 ]
 
 WHATSAPP_INVITE_MAX_USES = int(os.environ.get("WHATSAPP_INVITE_MAX_USES", 3))
+EVENT_MEMBER_AUDIENCES = ["bronze", "silver", "gold", "diamond"]
 
 
 def generate_temp_password(length=10):
@@ -128,6 +129,62 @@ def get_member_access_issue(member, db=None):
         return "This account is temporarily paused by the admin team."
 
     return None
+
+
+def normalize_event_audiences(raw_audiences):
+    audiences = []
+    if not raw_audiences:
+        return list(EVENT_MEMBER_AUDIENCES)
+
+    for audience in raw_audiences:
+        audience = (audience or "").strip().lower()
+        if audience == "all":
+            audiences.extend(EVENT_MEMBER_AUDIENCES)
+        elif audience in EVENT_MEMBER_AUDIENCES or audience == "public":
+            audiences.append(audience)
+
+    unique_audiences = []
+    for audience in audiences:
+        if audience not in unique_audiences:
+            unique_audiences.append(audience)
+
+    return unique_audiences or list(EVENT_MEMBER_AUDIENCES)
+
+
+def event_audiences(event):
+    audiences = event.get("audiences")
+    if not audiences:
+        return list(EVENT_MEMBER_AUDIENCES)
+    return audiences
+
+
+def event_is_public(event):
+    return "public" in event_audiences(event)
+
+
+def event_has_passed(event, reference_time=None):
+    event_datetime = event.get("event_datetime")
+    if not event_datetime:
+        return False
+
+    if reference_time is None:
+        reference_time = datetime.now(timezone.utc)
+
+    if event_datetime.tzinfo is None:
+        event_datetime = event_datetime.replace(tzinfo=timezone.utc)
+
+    return event_datetime < reference_time
+
+
+def event_member_labels(event):
+    audiences = event_audiences(event)
+    labels = []
+    for audience in EVENT_MEMBER_AUDIENCES:
+        if audience in audiences:
+            labels.append(audience.capitalize())
+    if "public" in audiences:
+        labels.append("Public")
+    return labels or ["All Members"]
 
 
 # ── Auth Decorator ───────────────────────────────────────────────────────────
@@ -190,6 +247,48 @@ def about():
 @app.route("/team/")
 def team():
     return render_template("team.html", team_members=TEAM_MEMBERS)
+
+
+@app.route("/events/")
+def public_events():
+    db = get_db()
+    now = datetime.now()
+    events = list(db["events"].find({"status": "approved"}).sort("event_datetime", 1))
+
+    public_live_events = []
+    public_past_events = []
+
+    for event in events:
+        if not event_is_public(event):
+            continue
+
+        if event.get("event_datetime"):
+            event["date_str"] = event["event_datetime"].strftime("%d %b %Y")
+            event["time_str"] = event["event_datetime"].strftime("%I:%M %p")
+        else:
+            event["date_str"] = event.get("date", "TBD")
+            event["time_str"] = event.get("time", "TBD")
+
+        if event.get("is_paid") == True:
+            event["is_paid"] = "yes"
+        elif event.get("is_paid") == False:
+            event["is_paid"] = "no"
+
+        if "banner_data" in event and event["banner_data"]:
+            event["banner"] = event["banner_data"]
+
+        if event.get("event_datetime") and event["event_datetime"].replace(tzinfo=None) >= now:
+            public_live_events.append(event)
+        else:
+            public_past_events.append(event)
+
+    public_past_events.reverse()
+
+    return render_template(
+        "events.html",
+        live_events=public_live_events,
+        past_events=public_past_events,
+    )
 
 
 @app.route("/contact/", methods=["GET", "POST"])
@@ -520,17 +619,28 @@ def dashboard():
 
 
 @app.route("/events/<event_id>")
-@login_required
 def event_details(event_id):
     from bson.objectid import ObjectId
 
     db = get_db()
-    member = db["members"].find_one({"email": session["member_email"]})
+    member = None
+    member_email = session.get("member_email")
+    if member_email:
+        member = db["members"].find_one({"email": member_email})
+        access_issue = get_member_access_issue(member, db=db)
+        if access_issue:
+            session.clear()
+            flash(access_issue, "error")
+            return redirect(url_for("login"))
     event = db["events"].find_one({"_id": ObjectId(event_id)})
 
     if not event or event.get("status") != "approved":
         flash("Event not found.", "error")
         return redirect(url_for("dashboard"))
+
+    if not event_is_public(event) and not member:
+        flash("Please log in to view this event.", "error")
+        return redirect(url_for("login"))
 
     if event.get("event_datetime"):
         event["date_str"] = event["event_datetime"].strftime("%d %b %Y")
@@ -547,10 +657,14 @@ def event_details(event_id):
     if "banner_data" in event and event["banner_data"]:
         event["banner"] = event["banner_data"]
 
-    user_regs = [
-        r for r in event.get("registrations", []) if r["email"] == member["email"]
-    ]
-    user_reg = user_regs[-1] if user_regs else None
+    registration_open = not event_has_passed(event)
+
+    user_reg = None
+    if member:
+        user_regs = [
+            r for r in event.get("registrations", []) if r["email"] == member["email"]
+        ]
+        user_reg = user_regs[-1] if user_regs else None
 
     spots_left = int(event.get("max_capacity", 0)) - event.get("registered_count", 0)
 
@@ -560,26 +674,44 @@ def event_details(event_id):
         member=member,
         user_reg=user_reg,
         spots_left=spots_left,
+        is_public_event=event_is_public(event),
+        registration_open=registration_open,
     )
 
 
 @app.route("/events/<event_id>/register", methods=["POST"])
-@login_required
 def register_event(event_id):
     db = get_db()
-    member = db["members"].find_one({"email": session["member_email"]})
+    member = None
+    member_email = session.get("member_email")
+    if member_email:
+        member = db["members"].find_one({"email": member_email})
+        access_issue = get_member_access_issue(member, db=db)
+        if access_issue:
+            session.clear()
+            flash(access_issue, "error")
+            return redirect(url_for("login"))
     event = db["events"].find_one({"_id": ObjectId(event_id)})
 
     if not event or event.get("status") != "approved":
         flash("Event not found.", "error")
         return redirect(url_for("dashboard"))
 
+    if event_has_passed(event):
+        flash("Registration for this event is closed because the event has already passed.", "error")
+        return redirect(url_for("event_details", event_id=event_id))
+
+    if not event_is_public(event) and not member:
+        flash("Please log in to register for this event.", "error")
+        return redirect(url_for("login"))
+
     # Check if already registered
+    registration_email = member["email"] if member else request.form.get("email", "").strip()
     existing_reg = next(
         (
             r
             for r in event.get("registrations", [])
-            if r["email"] == member["email"]
+            if r["email"] == registration_email
             and r["status"] not in ("cancelled", "rejected")
         ),
         None,
@@ -612,14 +744,50 @@ def register_event(event_id):
             )
             return redirect(url_for("event_details", event_id=event_id))
 
+    is_member_registration = request.form.get("is_member") == "yes"
+    if is_member_registration and not member:
+        flash("Please log in as a member before registering as a member.", "error")
+        return redirect(url_for("login"))
+
     import uuid
 
     reg_id = str(uuid.uuid4())
+    if member:
+        registration_name = member.get("name", "Member")
+        registration_phone = member.get("phone", "")
+        registration_email = member.get("email", "")
+        registration_is_member = True
+    else:
+        registration_name = request.form.get("name", "").strip()
+        registration_phone = request.form.get("phone", "").strip()
+        registration_email = request.form.get("email", "").strip()
+        registration_is_member = False
+
+    if not registration_name or not registration_email or not registration_phone:
+        flash("Name, email, and phone are required.", "error")
+        return redirect(url_for("event_details", event_id=event_id))
+
+    if not member:
+        existing_member = db["members"].find_one({"email": registration_email})
+        if existing_member and not is_member_registration:
+            flash("This email already belongs to a PIB member. Please login and register from your dashboard.", "error")
+            return redirect(url_for("login"))
+
+        phone_clean = re.sub(r"[\s\-]", "", registration_phone)
+        if not re.fullmatch(r"(\+91|91|0)?[6-9]\d{9}", phone_clean):
+            flash(
+                "Please enter a valid Indian mobile number (e.g. 9876543210 or +91 98765 43210).",
+                "error",
+            )
+            return redirect(url_for("event_details", event_id=event_id))
+
     registration = {
         "id": reg_id,
-        "email": member["email"],
-        "name": member["name"],
-        "phone": member.get("phone", ""),
+        "email": registration_email,
+        "name": registration_name,
+        "phone": registration_phone,
+        "is_member": registration_is_member,
+        "member_email": member["email"] if member else None,
         "timestamp": datetime.now(),
         "status": "pending",
     }
@@ -675,7 +843,9 @@ def register_event(event_id):
         f"Registration successful! Status: {registration['status'].capitalize()}",
         "success",
     )
-    return redirect(url_for("dashboard"))
+    if member:
+        return redirect(url_for("dashboard"))
+    return redirect(url_for("event_details", event_id=event_id))
 
 
 def process_waitlist(event_id, db):
@@ -1628,6 +1798,9 @@ def admin_events():
         location = request.form.get("location", "").strip()
         description = request.form.get("description", "").strip()
         registration_link = request.form.get("registration_link", "").strip()
+        event_audience_selection = normalize_event_audiences(
+            request.form.getlist("audiences")
+        )
         is_paid = request.form.get("is_paid") == "yes"
         require_payment_screenshot = request.form.get(
             "require_payment_screenshot", "no"
@@ -1667,6 +1840,7 @@ def admin_events():
             "location": location,
             "description": description,
             "registration_link": registration_link,
+            "audiences": event_audience_selection,
             "is_paid": is_paid,
             "require_payment_screenshot": require_payment_screenshot,
             "fees_details": fees_details,
@@ -1719,6 +1893,7 @@ def edit_event(event_id):
             "description": request.form.get("description"),
             "max_capacity": int(request.form.get("max_capacity", 0)),
             "waitlist_capacity": int(request.form.get("waitlist_capacity", 0)),
+            "audiences": normalize_event_audiences(request.form.getlist("audiences")),
             "is_paid": request.form.get("is_paid"),
             "require_payment_screenshot": request.form.get(
                 "require_payment_screenshot", "no"

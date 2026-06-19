@@ -85,6 +85,19 @@
                 <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Description *</label>
                 <textarea name="description" rows="5" required style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--white); border-radius:4px;">{{ event.description }}</textarea>
             </div>
+
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label style="display:block; color:var(--gold); margin-bottom:0.5rem;">Publish For *</label>
+                <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;">
+                    <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; color:var(--white);"><input type="checkbox" name="audiences" value="bronze" {% if 'bronze' in (event.audiences or ['bronze','silver','gold','diamond']) %}checked{% endif %} style="accent-color: var(--gold);"> Bronze</label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; color:var(--white);"><input type="checkbox" name="audiences" value="silver" {% if 'silver' in (event.audiences or ['bronze','silver','gold','diamond']) %}checked{% endif %} style="accent-color: var(--gold);"> Silver</label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; color:var(--white);"><input type="checkbox" name="audiences" value="gold" {% if 'gold' in (event.audiences or ['bronze','silver','gold','diamond']) %}checked{% endif %} style="accent-color: var(--gold);"> Gold</label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; color:var(--white);"><input type="checkbox" name="audiences" value="diamond" {% if 'diamond' in (event.audiences or ['bronze','silver','gold','diamond']) %}checked{% endif %} style="accent-color: var(--gold);"> Diamond</label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; color:var(--white);"><input type="checkbox" name="audiences" value="all" {% if not event.audiences or ('bronze' in event.audiences and 'silver' in event.audiences and 'gold' in event.audiences and 'diamond' in event.audiences and 'public' not in event.audiences) %}checked{% endif %} style="accent-color: var(--gold);"> All Members</label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px; color:var(--white);"><input type="checkbox" name="audiences" value="public" {% if 'public' in (event.audiences or []) %}checked{% endif %} style="accent-color: var(--gold);"> Public Event</label>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem;">Public events appear on the main website and allow non-member registration.</p>
+            </div>
             
             <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 8px;">Save Changes</button>
         </form>

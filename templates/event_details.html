@@ -21,7 +21,7 @@
 
 {% block content %}
 <div class="event-container fade-up visible">
-    <a href="{{ url_for('dashboard') }}" style="color:var(--gold); text-decoration:none; display:inline-block; margin-bottom:1rem;">← Back to Dashboard</a>
+    <a href="{{ url_for('dashboard') if member else url_for('public_events') }}" style="color:var(--gold); text-decoration:none; display:inline-block; margin-bottom:1rem;">← Back</a>
     
     {% if event.banner %}
     <img src="{{ event.banner }}" class="event-banner" alt="{{ event.title }}">
@@ -32,6 +32,7 @@
         <div class="event-meta">
             <p>📅 {{ event.date_str }} at {{ event.time_str }}</p>
             <p>📍 {{ event.location }}</p>
+            <p>🎫 For: {{ (event.audiences or ['bronze', 'silver', 'gold', 'diamond']) | map('capitalize') | list | join(', ') }}</p>
             {% if event.is_paid == 'yes' %}
             <p>💰 {{ event.fees_details }}</p>
             {% else %}
@@ -85,31 +86,96 @@
             {% endif %}
         {% endif %}
 
-        {% if not user_reg or user_reg.status in ['cancelled', 'rejected'] %}
-            <form action="{{ url_for('register_event', event_id=event._id) }}" method="POST" enctype="multipart/form-data">
-                {% if event.registration_link %}
-                    <div style="margin-bottom: 1.5rem; background: rgba(200,168,75,0.05); padding: 1rem; border: 1px solid var(--border); border-radius: 6px;">
-                        <label style="display:flex; align-items:flex-start; cursor:pointer; gap: 0.75rem;">
-                            <input type="checkbox" name="external_link_consent" required style="margin-top: 0.25rem; transform: scale(1.2);">
-                            <span style="color:var(--white); font-size:0.9rem; line-height: 1.4;">
-                                I confirm that I have also registered on the <a href="{{ event.registration_link }}" target="_blank" style="color:var(--gold); text-decoration: underline;">external link</a> provided above. I understand that my entry will be voided if I have not registered there, even if my application is approved.
-                            </span>
-                        </label>
-                    </div>
-                {% endif %}
+        {% if member %}
+            {% if not registration_open %}
+                <div style="padding: 1rem; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; color: var(--text-muted);">
+                    Registration for this event is closed because the event has already passed.
+                </div>
+            {% elif not user_reg or user_reg.status in ['cancelled', 'rejected'] %}
+                <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(200,168,75,0.06); border: 1px solid rgba(200,168,75,0.2); border-radius: 8px; color: var(--text-muted);">
+                    You are logged in as a member. You can also register from your dashboard.
+                </div>
+                <form action="{{ url_for('register_event', event_id=event._id) }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="is_member" value="yes">
+                    {% if event.registration_link %}
+                        <div style="margin-bottom: 1.5rem; background: rgba(200,168,75,0.05); padding: 1rem; border: 1px solid var(--border); border-radius: 6px;">
+                            <label style="display:flex; align-items:flex-start; cursor:pointer; gap: 0.75rem;">
+                                <input type="checkbox" name="external_link_consent" required style="margin-top: 0.25rem; transform: scale(1.2);">
+                                <span style="color:var(--white); font-size:0.9rem; line-height: 1.4;">
+                                    I confirm that I have also registered on the <a href="{{ event.registration_link }}" target="_blank" style="color:var(--gold); text-decoration: underline;">external link</a> provided above. I understand that my entry will be voided if I have not registered there, even if my application is approved.
+                                </span>
+                            </label>
+                        </div>
+                    {% endif %}
 
-                {% if (event.is_paid == 'yes' or event.is_paid == True) and event.require_payment_screenshot == 'yes' %}
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display:block; margin-bottom:0.5rem; color:var(--white);">Upload Payment Screenshot *</label>
-                        <input type="file" name="payment_screenshot" required accept="image/*" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:transparent; color:white;">
+                    {% if (event.is_paid == 'yes' or event.is_paid == True) and event.require_payment_screenshot == 'yes' %}
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display:block; margin-bottom:0.5rem; color:var(--white);">Upload Payment Screenshot *</label>
+                            <input type="file" name="payment_screenshot" required accept="image/*" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:transparent; color:white;">
+                        </div>
+                    {% endif %}
+                    <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:15px; font-size:1.1rem;">Register Now</button>
+                </form>
+            {% endif %}
+        {% elif is_public_event %}
+            <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.25); border-radius: 8px; color: var(--text-muted);">
+                Public events are open to members and non-members. If you are a PIB member, please login and register from your dashboard for the smoothest experience.
+            </div>
+            {% if not registration_open %}
+                <div style="padding: 1rem; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; color: var(--text-muted);">
+                    Registration for this event is closed because the event has already passed.
+                </div>
+            {% else %}
+                <form action="{{ url_for('register_event', event_id=event._id) }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="is_member" value="no">
+                    {% if event.registration_link %}
+                        <div style="margin-bottom: 1.5rem; background: rgba(200,168,75,0.05); padding: 1rem; border: 1px solid var(--border); border-radius: 6px;">
+                            <label style="display:flex; align-items:flex-start; cursor:pointer; gap: 0.75rem;">
+                                <input type="checkbox" name="external_link_consent" required style="margin-top: 0.25rem; transform: scale(1.2);">
+                                <span style="color:var(--white); font-size:0.9rem; line-height: 1.4;">
+                                    I confirm that I have also registered on the <a href="{{ event.registration_link }}" target="_blank" style="color:var(--gold); text-decoration: underline;">external link</a> provided above, if required.
+                                </span>
+                            </label>
+                        </div>
+                    {% endif %}
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                        <div>
+                            <label style="display:block; margin-bottom:0.5rem; color:var(--white);">Name *</label>
+                            <input type="text" name="name" required class="form-input" placeholder="Gurpreet Singh">
+                        </div>
+                        <div>
+                            <label style="display:block; margin-bottom:0.5rem; color:var(--white);">Email *</label>
+                            <input type="email" name="email" required class="form-input" placeholder="gurpreet@email.com">
+                        </div>
                     </div>
-                {% endif %}
-                <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:15px; font-size:1.1rem;">Register Now</button>
-            </form>
-            <p style="text-align:center; color:var(--text-muted); margin-top:1rem; font-size:0.9rem;">
-                Spots remaining: {{ spots_left if spots_left > 0 else 0 }} / {{ event.max_capacity }}
-                {% if spots_left <= 0 %}(Waitlist is open){% endif %}
-            </p>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                        <div>
+                            <label style="display:block; margin-bottom:0.5rem; color:var(--white);">Phone *</label>
+                            <input type="tel" name="phone" required class="form-input" placeholder="+91 98765 43210">
+                        </div>
+                        <div>
+                            <label style="display:block; margin-bottom:0.5rem; color:var(--white);">Are you a PIB member?</label>
+                            <select name="is_member" class="form-select">
+                                <option value="no" selected>No, I am registering as a guest</option>
+                                <option value="yes">Yes, I will login and register from my dashboard</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {% if (event.is_paid == 'yes' or event.is_paid == True) and event.require_payment_screenshot == 'yes' %}
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display:block; margin-bottom:0.5rem; color:var(--white);">Upload Payment Screenshot *</label>
+                            <input type="file" name="payment_screenshot" required accept="image/*" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:transparent; color:white;">
+                        </div>
+                    {% endif %}
+                    <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:15px; font-size:1.1rem;">Register Now</button>
+                </form>
+                <p style="text-align:center; color:var(--text-muted); margin-top:1rem; font-size:0.9rem;">
+                    Spots remaining: {{ spots_left if spots_left > 0 else 0 }} / {{ event.max_capacity }}
+                    {% if spots_left <= 0 %}(Waitlist is open){% endif %}
+                </p>
+            {% endif %}
         {% endif %}
     </div>
 </div>

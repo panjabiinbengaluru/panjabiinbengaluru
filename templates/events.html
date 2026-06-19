@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Events | Panjabi in Bengaluru{% endblock %}
+
+{% block extra_css %}
+<style>
+    .events-page { max-width: 1200px; margin: 4rem auto; padding: 0 2rem 6rem; }
+    .events-hero { text-align: center; margin-bottom: 3rem; }
+    .events-hero p { color: var(--text-muted); max-width: 720px; margin: 0.75rem auto 0; line-height: 1.7; }
+    .events-section { margin-top: 2.5rem; }
+    .events-section h2 { font-family: 'Space Grotesk', sans-serif; color: var(--white); font-size: 1.6rem; margin-bottom: 1rem; }
+    .events-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+    .event-card { background: rgba(10,15,30,0.55); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .event-banner { width: 100%; height: 220px; object-fit: cover; background: #000; }
+    .event-body { padding: 1.25rem; }
+    .event-title { color: var(--gold); font-size: 1.25rem; font-family: 'Space Grotesk', sans-serif; margin-bottom: 0.35rem; }
+    .event-meta { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.75rem; }
+    .event-badges { display:flex; flex-wrap:wrap; gap:6px; margin: 0.75rem 0; }
+    .event-badge { display:inline-block; padding:3px 8px; border-radius:999px; font-size:0.7rem; border:1px solid rgba(200,168,75,0.35); background:rgba(200,168,75,0.08); color:var(--gold); }
+    .event-desc { color: var(--text-body); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1rem; }
+    .empty-state { background: rgba(10,15,30,0.55); border: 1px dashed var(--border); border-radius: 14px; padding: 2rem; color: var(--text-muted); text-align: center; }
+    .section-sep { height: 1px; background: var(--border); margin: 2rem 0; }
+    @media (max-width: 900px) {
+        .events-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="events-page fade-up visible">
+    <div class="events-hero">
+        <div class="section-badge" style="display:inline-flex;"><i class="fas fa-calendar-star"></i> Public Events</div>
+        <h1 class="section-title">Upcoming <span>Events</span></h1>
+        <div class="gold-divider center"></div>
+        <p>Explore public Panjabi in Bengaluru events open to everyone. Members can still use the dashboard for member-only registrations and updates.</p>
+    </div>
+
+    <div class="events-section">
+        <h2>Upcoming Public Events</h2>
+        {% if live_events %}
+            <div class="events-grid">
+                {% for event in live_events %}
+                    <div class="event-card">
+                        {% if event.banner %}
+                            <img src="{{ event.banner }}" alt="{{ event.title }}" class="event-banner">
+                        {% endif %}
+                        <div class="event-body">
+                            <div class="event-title">{{ event.title }}</div>
+                            <div class="event-meta">📅 {{ event.date_str }} at {{ event.time_str }}<br>📍 {{ event.location }}</div>
+                            <div class="event-badges">
+                                {% for audience in event.audiences or ['public'] %}
+                                    <span class="event-badge">{{ audience|capitalize }}</span>
+                                {% endfor %}
+                            </div>
+                            <div class="event-desc">{{ event.description }}</div>
+                            <a href="{{ url_for('event_details', event_id=event._id) }}" class="btn-primary" style="width:100%; justify-content:center; text-decoration:none;">View & Register</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                Stay tuned, we are bringing something for you.
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="section-sep"></div>
+
+    <div class="events-section">
+        <h2>Past Public Events</h2>
+        {% if past_events %}
+            <div class="events-grid">
+                {% for event in past_events %}
+                    <div class="event-card" style="opacity:0.9;">
+                        {% if event.banner %}
+                            <img src="{{ event.banner }}" alt="{{ event.title }}" class="event-banner">
+                        {% endif %}
+                        <div class="event-body">
+                            <div class="event-title">{{ event.title }}</div>
+                            <div class="event-meta">📅 {{ event.date_str }} at {{ event.time_str }}<br>📍 {{ event.location }}</div>
+                            <div class="event-badges">
+                                {% for audience in event.audiences or ['public'] %}
+                                    <span class="event-badge">{{ audience|capitalize }}</span>
+                                {% endfor %}
+                            </div>
+                            <div class="event-desc">{{ event.description }}</div>
+                            <a href="{{ url_for('event_details', event_id=event._id) }}" class="btn-secondary" style="width:100%; justify-content:center; text-decoration:none;">View Details</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">No past public events yet.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
