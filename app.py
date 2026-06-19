@@ -1173,6 +1173,22 @@ def admin_communications():
                 flash("Subject and message body are required for member communications.", "error")
                 return redirect(url_for("admin_communications"))
 
+            # Handle file attachment
+            attachment_file = None
+            if "attachment" in request.files:
+                file = request.files["attachment"]
+                if file and file.filename:
+                    # Check file size (max 5MB)
+                    file.seek(0, 2)  # Seek to end
+                    file_size = file.tell()
+                    file.seek(0)  # Seek back to start
+                    
+                    if file_size > 5 * 1024 * 1024:  # 5MB
+                        flash("Attachment file size must not exceed 5MB.", "error")
+                        return redirect(url_for("admin_communications"))
+                    
+                    attachment_file = file
+
             success_count = 0
             failure_count = 0
 
@@ -1180,7 +1196,15 @@ def admin_communications():
                 personalized_body = message_body.replace("{name}", member.get("name", "Member")).replace(
                     "{email}", member.get("email", "")
                 )
-                if send_email_message(member["email"], subject, personalized_body):
+                
+                # Convert plain text to HTML with clickable links
+                html_body = convert_text_to_html_with_links(personalized_body)
+                
+                # Reset file pointer if attachment exists
+                if attachment_file:
+                    attachment_file.seek(0)
+                
+                if send_email_message(member["email"], subject, html_body, is_html=True, attachment_file=attachment_file):
                     success_count += 1
                 else:
                     failure_count += 1
@@ -1195,6 +1219,7 @@ def admin_communications():
                     else "selected-members",
                     "targets": [member["email"] for member in members],
                     "subject": subject,
+                    "has_attachment": attachment_file is not None,
                     "success_count": success_count,
                     "failure_count": failure_count,
                     "created_at": datetime.now(timezone.utc),
@@ -1448,7 +1473,24 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-def send_email_message(recipient_email, subject, body):
+def convert_text_to_html_with_links(text):
+    """Convert plain text to HTML with clickable links and line breaks."""
+    import re
+    
+    # Escape HTML special characters first (but preserve newlines)
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    
+    # Convert newlines to <br> tags
+    text = text.replace("\n", "<br>")
+    
+    # Convert URLs to clickable links (http:// and https://)
+    url_pattern = r'(https?://[^\s<>]+)'
+    text = re.sub(url_pattern, r'<a href="\1" style="color: #C8A84B; text-decoration: underline;">\1</a>', text)
+    
+    return text
+
+
+def send_email_message(recipient_email, subject, body, is_html=False, attachment_file=None):
     sender_email = os.environ.get("MAIL_USERNAME", "no-reply@panjabiinbengaluru.com")
     sender_password = os.environ.get("MAIL_PASSWORD", "")
     smtp_server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
@@ -1461,7 +1503,24 @@ def send_email_message(recipient_email, subject, body):
     msg["From"] = f"Admin Team, Panjabi in Bengaluru <{sender_email}>"
     msg["To"] = recipient_email
     msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+    msg.attach(MIMEText(body, "html" if is_html else "plain"))
+
+    # Attach file if provided
+    if attachment_file:
+        try:
+            from email.mime.base import MIMEBase
+            from email import encoders
+            
+            filename = attachment_file.filename
+            payload = attachment_file.read()
+            
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(payload)
+            encoders.encode_base64(part)
+            part.add_header("Content-Disposition", f"attachment; filename= {filename}")
+            msg.attach(part)
+        except Exception as e:
+            app.logger.error(f"Failed to attach file: {e}")
 
     try:
         server = smtplib.SMTP(smtp_server, smtp_port)
